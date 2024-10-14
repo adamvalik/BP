@@ -1,26 +1,34 @@
-from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Add CORS middleware
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # You can restrict this to specific origins
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Define the structure of the incoming message using Pydantic
+# response model
+class ResponseModel(BaseModel):
+    reply_msg: str
+    metadata: dict
+
+# incoming message model
 class Message(BaseModel):
     text: str
 
-# Simple API route to receive a message and send a reply
 @app.post("/send-message")
 async def send_message(message: Message):
     user_message = message.text
-    # Simple logic to generate a reply
-    bot_reply = f"You said: {user_message}. Here's my reply!"
-    return {"reply": bot_reply}
+    response = f"You said: {user_message}. OK, well done, that's all for now!"
+    metadata = {
+        "score": 0.8,
+        "link": "path/to/some/resource.pptx",
+        "context": "context of the message"
+    }
+    return ResponseModel(reply_msg=response, metadata=metadata)
