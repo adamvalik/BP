@@ -1,0 +1,59 @@
+services:
+  # FastAPI backend service
+  fastapi_api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fastapi_api
+    ports:
+      - "8000:8000"
+    environment:
+      - ELASTICSEARCH_HOST=http://elasticsearch:9200
+      - WEAVIATE_HOST=http://weaviate:8080
+    # depends_on:
+      # - elasticsearch
+      # - weaviate
+
+  # Vue.js frontend service
+  vue_frontend:
+    build:
+      context: ./web_app
+      dockerfile: Dockerfile
+    container_name: vue_frontend
+    ports:
+      - "8081:80"
+    environment:
+      - VUE_APP_BACKEND_URL=http://fastapi_api:8000
+    depends_on:
+      - fastapi_api
+
+#   # Elasticsearch service
+#   elasticsearch:
+#     image: docker.elastic.co/elasticsearch/elasticsearch:8.6.0
+#     container_name: elasticsearch
+#     environment:
+#       - discovery.type=single-node
+#       - ES_JAVA_OPTS=-Xms512m -Xmx512m
+#     ports:
+#       - "9200:9200"
+#     volumes:
+#       - ./elasticsearch_data:/usr/share/elasticsearch/data
+
+#   # Weaviate service
+#   weaviate:
+#     image: semitechnologies/weaviate:latest
+#     container_name: weaviate
+#     environment:
+#       - QUERY_DEFAULTS_LIMIT=100
+#       - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+#       - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+#       - ENABLE_MODULES=text2vec-transformers
+#       - TRANSFORMERS_INFERENCE_API=sentence-transformers/all-MiniLM-L6-v2
+#     ports:
+#       - "8080:8080"
+#     volumes:
+#       - ./weaviate_data:/var/lib/weaviate
+
+# volumes:
+#   elasticsearch_data:
+#   weaviate_data:
