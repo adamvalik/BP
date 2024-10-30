@@ -1,3 +1,9 @@
 fastapi
 uvicorn
 pydantic
+weaviate-client
+elasticsearch
+unstructured
+sentence-transformers
+langchain
+openai
