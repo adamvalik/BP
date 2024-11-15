@@ -4,15 +4,20 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload  # command override for development (--reload)
     container_name: fastapi_api
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend:/app
     environment:
       - ELASTICSEARCH_HOST=http://elasticsearch:9200
       - WEAVIATE_HOST=http://weaviate:8080
     # depends_on:
       # - elasticsearch
       # - weaviate
+    networks:
+      - app_network
 
   # Vue.js frontend service
   vue_frontend:
@@ -21,11 +26,17 @@ services:
       dockerfile: Dockerfile
     container_name: vue_frontend
     ports:
-      - "8081:80"
+      - "8080:8080"  # development: serve on port 8081 with hot-reloading
+    # - "8080:80"    # production:  serve via NGINX on port 8081 mapped to port 80 inside the container
+    volumes:
+      - ./web_app:/app
+      - /app/node_modules
     environment:
-      - VUE_APP_BACKEND_URL=http://fastapi_api:8000
+      - BACKEND_URL=http://fastapi_api:8000
     depends_on:
       - fastapi_api
+    networks:
+      - app_network
 
 #   # Elasticsearch service
 #   elasticsearch:
@@ -38,6 +49,8 @@ services:
 #       - "9200:9200"
 #     volumes:
 #       - ./elasticsearch_data:/usr/share/elasticsearch/data
+#     networks:
+#       - app_network
 
 #   # Weaviate service
 #   weaviate:
@@ -50,9 +63,15 @@ services:
 #       - ENABLE_MODULES=text2vec-transformers
 #       - TRANSFORMERS_INFERENCE_API=sentence-transformers/all-MiniLM-L6-v2
 #     ports:
-#       - "8080:8080"
+#       - "8081:8080"
 #     volumes:
 #       - ./weaviate_data:/var/lib/weaviate
+#     networks:
+#       - app_network
+
+networks:
+  app_network:
+    driver: bridge
 
 # volumes:
 #   elasticsearch_data:

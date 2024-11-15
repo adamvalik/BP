@@ -1,4 +1,5 @@
-FROM node:16 AS build
+# development server with hot-reloading
+FROM node:22
 
 WORKDIR /app
 
@@ -7,12 +8,26 @@ RUN npm install
 
 COPY . .
 
-RUN npm run build
+EXPOSE 8080
 
-FROM nginx:alpine
+CMD ["npm", "run", "serve"]
 
-COPY --from=build /app/dist /usr/share/nginx/html
 
-EXPOSE 8081
+# production: build and serve the app with NGINX
+# FROM node:16 AS build
 
-CMD ["nginx", "-g", "daemon off;"]
+# WORKDIR /app
+
+# COPY package*.json ./
+# RUN npm install
+
+# COPY . .
+# RUN npm run build
+
+# FROM nginx:alpine
+
+# COPY --from=build /app/dist /usr/share/nginx/html
+
+# EXPOSE 80
+
+# CMD ["nginx", "-g", "daemon off;"]

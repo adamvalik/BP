@@ -1,4 +1,4 @@
-backend/api/__pycache__/
+backend/__pycache__/
 web_app/node_modules/
 web_app/dist/
 
