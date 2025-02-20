@@ -1,10 +1,13 @@
-backend/__pycache__/
-web_app/node_modules/
-web_app/dist/
-
-# persistent storage
-elasticsearch_data/
-weaviate_data/
-
 .vscode/
 .DS_Store
+venv/
+__pycache__/
+node_modules/
+dist/
+
+# datasets
+rag/downloads/
+rag/txt-dataset/
+
+# persistent storage
+weaviate_data/
