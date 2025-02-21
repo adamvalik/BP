@@ -8,6 +8,8 @@ from unstructured.chunking.title import chunk_by_title
 from unstructured.cleaners.core import clean
 import emoji
 import re
+from typing import List
+from chunk import Chunk
 
 class DocumentProcessor():
 
@@ -52,54 +54,57 @@ class DocumentProcessor():
         return cleaned_elements
 
     @staticmethod
-    def chunk_elements(elements, custom_tags=None):
-
+    def chunk_elements(elements) -> List[Chunk]:
         chunks = chunk_by_title(elements)
         processed_chunks = []
-        title = None
+        title = ""
+
         for i, chunk in enumerate(chunks):
             # remove \n\n from chunk.text
             chunk_text = chunk.text.replace("\n\n", " ")
 
             # extract metadata from original elements
-            orig_metadata = chunk.metadata.orig_elements[0].metadata
-            metadata = {
-                "filename": orig_metadata.filename,
-                "file_directory": orig_metadata.file_directory,
-                "title": title,
-                "page_number": None,
-                "tags": custom_tags
-            }
+            meta = chunk.metadata.orig_elements[0].metadata
+            c = Chunk(
+                chunkid=f"{meta.filename}_{i}",
+                text=chunk_text,
+                filename=meta.filename,
+                file_directory=meta.file_directory,
+                title=title,
+            )
 
             for elem in chunk.metadata.orig_elements:
                 if elem.category == "Title":
-                    metadata["title"] = elem.text
+                    c.title = elem.text
                     title = elem.text
-                if metadata["page_number"] is None:
-                    metadata["page_number"] = elem.metadata.page_number
+                if not c.page_number and elem.metadata.page_number:
+                    c.page_number = elem.metadata.page_number
+                    # TODO: page as string for page range (e.g. "1-2")
 
-            processed_chunks.append({"text": chunk_text, "metadata": metadata})
+            processed_chunks.append(c)
         return processed_chunks
 
     @staticmethod
-    def process(file_path: str, custom_tags=None):
+    def process(file_path: str, verbose: bool = False) -> List[Chunk]:
         # processing pipeline
         elements = DocumentProcessor.partition_elements(file_path)
         if not elements:
             return []
-
-        print("\033[32m" + f"Partitioned {len(elements)} elements" + "\033[0m" + f" ({file_path})")
         cleaned_elements = DocumentProcessor.clean_elements(elements)
-        for el in cleaned_elements:
-            print(f"Category: {el.category}")
-            print(f"Text: {el.text}")
-            print("-------------------------------")
 
-        chunks = DocumentProcessor.chunk_elements(cleaned_elements, custom_tags)
-        print("\033[32m" + f"Chunked {len(chunks)} chunks from {len(cleaned_elements)} elements"  + "\033[0m" + f" ({file_path})")
-        for chunk in chunks:
-            print(f"Text: {chunk['text']}")
-            print(f"Metadata: {chunk['metadata']}")
-            print("-------------------------------")
+        if verbose:
+            print("\033[32m" + f"Partitioned {len(elements)} elements" + "\033[0m" + f" ({file_path})")
+            for el in cleaned_elements:
+                print(f"Category: {el.category}")
+                print(f"Text: {el.text}")
+                print("-------------------------------")
+
+        chunks = DocumentProcessor.chunk_elements(cleaned_elements)
+
+        if verbose:
+            print("\033[32m" + f"Chunked {len(chunks)} chunks from {len(cleaned_elements)} elements"  + "\033[0m" + f" ({file_path})")
+            for chunk in chunks:
+                print(chunk)
+                print("-------------------------------")
 
         return chunks
