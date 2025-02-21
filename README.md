@@ -33,7 +33,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Insert the dataset into the database (running on localhost:8080):
+```bash
+python insert_data.py
+```
+
 Run the tests:
 ```bash
-pytest
+pytest -v tests/
 ```
