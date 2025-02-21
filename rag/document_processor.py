@@ -66,7 +66,7 @@ class DocumentProcessor():
             # extract metadata from original elements
             meta = chunk.metadata.orig_elements[0].metadata
             c = Chunk(
-                chunkid=f"{meta.filename}_{i}",
+                chunk_id=f"{meta.filename}_{i}",
                 text=chunk_text,
                 filename=meta.filename,
                 file_directory=meta.file_directory,

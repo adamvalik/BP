@@ -4,6 +4,7 @@ from tqdm import tqdm
 import os
 
 # later will be updated to DocumentManager
+# TODO: recursive downloading in subfolders
 
 class GoogleDriveDownloader:
     # folder id can be found in the URL of the folder in Google Drive
