@@ -10,6 +10,8 @@ class Chunk:
     title: str = ""
     page_number: int = 0
     rights: str = ""
+    score: float = 0.0
+    explain_score: str = ""
 
     def __str__(self):
         parts = [

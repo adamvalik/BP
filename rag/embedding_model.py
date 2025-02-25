@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Union
-from sentence_transformers import SentenceTransformer
-import openai
 from tqdm import tqdm
-from time import time
+import os
 
 class BaseEmbeddingModel(ABC):
     @abstractmethod
@@ -13,15 +11,19 @@ class BaseEmbeddingModel(ABC):
 class HuggingFaceEmbeddingModel(BaseEmbeddingModel):
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         self.model_name = model_name
-        self.model = SentenceTransformer(self.model_name)
+        self.model = self._init_model()
+        
+    def _init_model(self):
+        # lazy import
+        from sentence_transformers import SentenceTransformer
+        return SentenceTransformer(self.model_name)
 
     def embed(self, texts: Union[str, List[str]], batch_size: int = 0):
         if isinstance(texts, str):
             texts = [texts]
 
-        start_time = time()
         if batch_size == 0:
-            print(f"Embedding {len(texts)} text chunks (batch_size: 0)...")
+            print(f"Embedding {len(texts)} text chunks...")
             embeddings = self.model.encode(texts)
         else:
             embeddings = []
@@ -31,32 +33,43 @@ class HuggingFaceEmbeddingModel(BaseEmbeddingModel):
                 batch_embeddings = self.model.encode(batch)
                 embeddings.extend(batch_embeddings)
 
-        end_time = time()
-        print(f"Embedding completed in {end_time - start_time:.2f} seconds.")
         return embeddings
 
 class OpenAIEmbeddingModel(BaseEmbeddingModel):
-    def __init__(self, model_name: str = "text-embedding-ada-002", api_key: str = None):
+    def __init__(self, model_name: str = "text-embedding-ada-002"):
         self.model_name = model_name
-        self.api_key = api_key
+
+    def _init_client(self):
+        import openai
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        
+        if not self.api_key:
+            raise ValueError("OpenAI API key is required. Set it as an environment variable.")
+        
+        openai.api_key = self.api_key
+        return openai
 
     def embed(self, texts: Union[str, List[str]]):
         if isinstance(texts, str):
             texts = [texts]
 
-        openai.api_key = self.api_key
+        openai_client = self._initialize_client()
         embeddings = []
 
-        for text in texts:
-            response = openai.Embedding.create(input=text, model=self.model_name)
-            embedding = response['data'][0]['embedding']
-            embeddings.append(embedding)
+        for text in tqdm(texts, desc="Embedding with OpenAI", unit="text"):
+            try:
+                response = openai_client.Embedding.create(input=text, model=self.model_name)
+                embedding = response['data'][0]['embedding']
+                embeddings.append(embedding)
+            except Exception as e:
+                print(f"Failed to generate embedding for text: {text[:50]}... - Error: {e}")
 
         return embeddings
 
 class EmbeddingModelFactory:
     @staticmethod
     def get_model(model_type: str = "huggingface", **kwargs) -> BaseEmbeddingModel:
+        model_type = model_type.lower()
         if model_type == "huggingface":
             return HuggingFaceEmbeddingModel(**kwargs)
         elif model_type == "openai":
