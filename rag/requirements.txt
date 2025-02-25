@@ -12,6 +12,7 @@ sentence-transformers
 openai
 dataclasses
 pytest
+python-dotenv
 
 # unstructured_inference
 # pdfminer.six

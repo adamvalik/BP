@@ -33,12 +33,22 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Hybrid search is tested on dataset from: https://www.kaggle.com/datasets/jensenbaxter/10dataset-text-document-classification
+
+Download the dataset and place it in the `txt-dataset` folder.
+
 Insert the dataset into the database (running on localhost:8080):
 ```bash
 python insert_data.py
 ```
 
-Run the tests:
+Run the tests (optional: verbose mode, show stdout):
 ```bash
-pytest -v tests/
+pytest -v -s tests/some_test.py
 ```
+
+## Generating
+
+Set the `OPENAI_API_KEY` environment variable in `.env` file.
+
+

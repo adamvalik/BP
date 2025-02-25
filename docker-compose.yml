@@ -23,45 +23,49 @@ services:
       DISABLE_DEFAULT_VECTORIZER: 'true'
       CLUSTER_HOSTNAME: 'node1'
       AUTOSCHEMA_ENABLED: 'false'
+    networks:
+      - app_network
+  
 
-#   # FastAPI backend service
-#   api-service:
-#     build:
-#       context: ./rag
-#       dockerfile: Dockerfile
-#     command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload  # command override for development (--reload)
-#     ports:
-#       - "8000:8000"
-#     volumes:
-#       - ./rag:/app
-#     environment:
-#       - WEAVIATE_HOST=http://vector-db:8080
-#     depends_on:
-#       - vector-db
-#     networks:
-#       - app_network
+  # FastAPI backend service
+  api-service:
+    build:
+      context: ./rag
+      dockerfile: Dockerfile
+    command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload  # command override for development (--reload)
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./rag:/app
+    environment:
+      - WEAVIATE_HOST=http://vector-db:8080
+      - TOKENIZERS_PARALLELISM=false
+    depends_on:
+      - vector-db
+    networks:
+      - app_network
 
-#   # Vue.js frontend service
-#   frontend-app:
-#     build:
-#       context: ./web_app
-#       dockerfile: Dockerfile
-#     ports:
-#       - "8081:8080"  # development: serve on port 8081 with hot-reloading
-#     # - "8081:80"    # production:  serve via NGINX on port 8081 mapped to port 80 inside the container
-#     volumes:
-#       - ./web_app:/app
-#       - /app/node_modules
-#     environment:
-#       - BACKEND_URL=http://api-service:8000
-#     depends_on:
-#       - api-service
-#     networks:
-#       - app_network
+  # Vue.js frontend service
+  frontend-app:
+    build:
+      context: ./web_app
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"  # development: serve on port 8081 with hot-reloading
+    # - "8081:80"    # production:  serve via NGINX on port 8081 mapped to port 80 inside the container
+    volumes:
+      - ./web_app:/app
+      - /app/node_modules
+    environment:
+      - BACKEND_URL=http://api-service:8000
+    depends_on:
+      - api-service
+    networks:
+      - app_network
 
-# networks:
-#   app_network:
-#     driver: bridge
+networks:
+  app_network:
+    driver: bridge
 
 volumes:
   weaviate_data:
