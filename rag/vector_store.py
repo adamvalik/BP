@@ -1,7 +1,5 @@
-from ast import List
-from typing import Generator
 from weaviate import connect_to_local
-from weaviate.classes.query import MetadataQuery, Filter
+from weaviate.classes.query import MetadataQuery, Filter, HybridFusion
 from weaviate.classes.config import Property, DataType, Configure, VectorDistances
 from weaviate.classes.data import DataObject
 from weaviate.client import WeaviateClient
@@ -132,30 +130,20 @@ class VectorStore():
         if self.client:
             self.client.close()
         
-    def hybrid_search(self, query: str, k: int = 5, alpha: float = 0.5) -> List[Chunk]:
+    def hybrid_search(self, query: str, rights: str = None, k: int = 5, alpha: float = 0.5, autocut: bool = False) -> List[Chunk]:
         assert 0 <= alpha <= 1, "Alpha must be between 0 and 1."
+        assert rights in [None, "normal", "superior"], "Rights must be None, 'normal', or 'superior'."
         
         embedding = self.embedding_model.embed(query)[0]
         response = self.collection.query.hybrid(
             query=query,
             vector=embedding,
             alpha=alpha,
+            fusion_type=HybridFusion.RELATIVE_SCORE,
             return_metadata=MetadataQuery(score=True, explain_score=True),
-            limit=k
-        )
-        chunks = self.get_chunks_from_objs(response.objects)
-        return chunks if chunks[0].score > 0.5 else []
-    
-    def hybrid_search_autocut(self, query: str, k: int = 1, alpha: float = 0.5) -> List[Chunk]:
-        assert 0 <= alpha <= 1, "Alpha must be between 0 and 1."
-        
-        embedding = self.embedding_model.embed(query)[0]
-        response = self.collection.query.hybrid(
-            query=query,
-            vector=embedding,
-            alpha=alpha,
-            return_metadata=MetadataQuery(score=True, explain_score=True),
-            auto_limit=k, # number of close groups - autocut
+            limit = k if not autocut else None,
+            auto_limit= k if autocut else None,
+            filters=Filter.by_property("rights").equal(rights) if rights else None
         )
         chunks = self.get_chunks_from_objs(response.objects)
         return chunks if chunks[0].score > 0.5 else []
