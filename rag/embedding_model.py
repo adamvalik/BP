@@ -36,31 +36,24 @@ class HuggingFaceEmbeddingModel(BaseEmbeddingModel):
         return embeddings
 
 class OpenAIEmbeddingModel(BaseEmbeddingModel):
-    def __init__(self, model_name: str = "text-embedding-ada-002"):
+    def __init__(self, model_name: str = "text-embedding-3-small"):
         self.model_name = model_name
+        self.client = self._init_client()
 
     def _init_client(self):
         import openai
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        
-        if not self.api_key:
-            raise ValueError("OpenAI API key is required. Set it as an environment variable.")
-        
-        openai.api_key = self.api_key
-        return openai
+        return openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def embed(self, texts: Union[str, List[str]]):
         if isinstance(texts, str):
             texts = [texts]
 
-        openai_client = self._initialize_client()
         embeddings = []
 
         for text in tqdm(texts, desc="Embedding with OpenAI", unit="text"):
             try:
-                response = openai_client.Embedding.create(input=text, model=self.model_name)
-                embedding = response['data'][0]['embedding']
-                embeddings.append(embedding)
+                response = self.client.embeddings.create(input=text, model=self.model_name)
+                embeddings.append(response.data[0].embedding)
             except Exception as e:
                 print(f"Failed to generate embedding for text: {text[:50]}... - Error: {e}")
 
