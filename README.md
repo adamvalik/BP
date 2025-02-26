@@ -51,4 +51,9 @@ pytest -v -s tests/some_test.py
 
 Set the `OPENAI_API_KEY` environment variable in `.env` file.
 
+## Google Drive Integration 
 
+```bash
+ngrok http http://localhost:8000
+```
+to expose the FastAPI server to the internet, so Google Drive can send notifications about changes. Run this before starting the services and set the provided URL.

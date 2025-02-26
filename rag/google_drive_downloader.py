@@ -1,17 +1,18 @@
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
-from tqdm import tqdm
+from googleapiclient.http import MediaIoBaseDownload
 import os
-
-# later will be updated to DocumentManager
-# TODO: recursive downloading in subfolders
+import uuid
+import time
 
 class GoogleDriveDownloader:
     # folder id can be found in the URL of the folder in Google Drive
     FOLDER_ID = "1tnzT6UY-tW9Q3z4EE-1wnkvof4IIjnAr"
+    NGROK_URL = "https://7c61-213-220-197-96.ngrok-free.app/webhook" # /webhook endpoint in FastAPI
     CREDENTIALS_FILE = "credentials.json"
 
     def __init__(self, download_path: str = "downloads"):
+        self.file_cnt = 0
         self.download_path = download_path
 
         # ensure download path exists
@@ -25,26 +26,90 @@ class GoogleDriveDownloader:
         )
         self.service = build("drive", "v3", credentials=self.creds)
 
-    def list_files_in_folder(self):
-        query = f"'{self.FOLDER_ID}' in parents and trashed=false"
-        results = self.service.files().list(q=query, fields="files(id, name)").execute()
+    def list_files_in_folder(self, folder_id):
+        query = f"'{folder_id}' in parents and trashed=false"
+        results = self.service.files().list(q=query, fields="files(id, name, mimeType)").execute()
         return results.get("files", [])
 
-    def download_file(self, file_id: str, file_name: str):
+
+    def download_file(self, file_id: str, file_name: str, folder_path: str):
         request = self.service.files().get_media(fileId=file_id)
-        file_path = os.path.join(self.download_path, file_name)
-
+        file_path = os.path.join(folder_path, file_name)
+        
         with open(file_path, "wb") as f:
-            f.write(request.execute())
+            downloader = MediaIoBaseDownload(f, request)
+            done = False
+            while not done:
+                status, done = downloader.next_chunk()
+            self.file_cnt += 1
 
-    def download_all_files(self):
-        files = self.list_files_in_folder()
+    def download_folder(self, folder_id, parent_path):
+        files = self.list_files_in_folder(folder_id)
 
         if not files:
-            print("No files found in the folder.")
+            print(f"No files found in folder {folder_id}.")
             return
 
-        print(f"Found {len(files)} files.")
+        if not os.path.exists(parent_path):
+            os.makedirs(parent_path)
 
-        for file in tqdm(files, desc=f"Downloading files to {self.download_path}", unit="file"):
-            self.download_file(file["id"], file["name"])
+        for file in files:
+            file_name = file["name"]
+            file_id = file["id"]
+            mime_type = file["mimeType"]
+
+            # recursively download subfolder's contents
+            if mime_type == "application/vnd.google-apps.folder":
+                subfolder_path = os.path.join(parent_path, file_name)
+                print(f"Entering folder: {file_name}")
+                self.download_folder(file_id, subfolder_path)
+                print(f"Returning to folder: {parent_path}")
+            else:
+                print(f"Downloading file: {file_name}")
+                self.download_file(file_id, file_name, parent_path)
+
+    def download_all_files(self):
+        print(f"Starting download for folder: {self.FOLDER_ID}")
+        self.file_cnt = 0
+        self.download_folder(self.FOLDER_ID, self.download_path)
+        print("\033[32m"+f"Downloaded {self.file_cnt} files to {self.download_path}"+"\033[0m")
+
+    def start_watch_folder(self, folder_id):
+        body = {
+            "id": str(uuid.uuid4()),
+            "type": "web_hook",
+            "address": self.NGROK_URL,
+            "params": {
+                "ttl": "3600"  # 1 hour
+            }
+        }
+        request = self.service.files().watch(fileId=folder_id, body=body)
+        response = request.execute()
+        print("Watch response:", response)
+
+    def list_subfolders(self, folder_id):
+        subfolders = []
+        query = f"'{folder_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        results = self.service.files().list(q=query, fields="files(id, name)").execute()
+        folders = results.get("files", [])
+
+        for folder in folders:
+            subfolder_id = folder["id"]
+            subfolder_name = folder["name"]
+            print(f"Found subfolder: {subfolder_name} ({subfolder_id})")
+            subfolders.append(subfolder_id)
+
+            # recursively list subfolders
+            subfolders.extend(self.list_subfolders(subfolder_id))
+        
+        return subfolders
+
+    def start_watch(self):
+        self.start_watch_folder(self.FOLDER_ID)
+        time.sleep(1)
+
+        # watch also all subfolders
+        subfolders = self.list_subfolders(self.FOLDER_ID)
+        for subfolder_id in subfolders:
+            self.start_watch_folder(subfolder_id)
+            time.sleep(1)
