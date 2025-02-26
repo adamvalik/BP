@@ -1,5 +1,4 @@
 import pytest
-from rag_pipeline import RAGPipeline
 from vector_store import VectorStore
 from document_processor import DocumentProcessor
 from embedding_model import EmbeddingModelFactory
@@ -21,44 +20,39 @@ def vector_store():
     yield store
     store.close()
 
-@pytest.fixture(scope="module")
-def rag_pipeline(vector_store):
-    pipeline = RAGPipeline(vector_store)
-    return pipeline
-
-def test_prep(rag_pipeline, chunks_and_embeddings):
+def test_prep(vector_store, chunks_and_embeddings):
     pass
 
-def test_insert_chunks(rag_pipeline, chunks_and_embeddings):
+def test_insert_chunks(vector_store, chunks_and_embeddings):
     """Benchmark for One-by-One Insert"""
     chunks, embeddings = chunks_and_embeddings
-    rag_pipeline.vector_store.delete_document(TEST_FILE_PATH)
+    vector_store.delete_document(TEST_FILE_PATH)
     
     start = time.perf_counter()
-    rag_pipeline.vector_store.insert_chunks(chunks, embeddings=embeddings)
+    vector_store.insert_chunks(chunks, embeddings=embeddings)
     end = time.perf_counter()
     
     print("\033[34mOne-by-One Insert completed in " + f"{end - start:.2f}" + " seconds\033[0m")
 
-def test_insert_chunks_batch_benchmark(rag_pipeline, chunks_and_embeddings):
+def test_insert_chunks_batch_benchmark(vector_store, chunks_and_embeddings):
     """Benchmark for Batch Insert"""
     chunks, embeddings = chunks_and_embeddings
-    rag_pipeline.vector_store.delete_document(TEST_FILE_PATH)
+    vector_store.delete_document(TEST_FILE_PATH)
 
     start = time.perf_counter()
-    rag_pipeline.vector_store.insert_chunks_batch(chunks, embeddings=embeddings)
+    vector_store.insert_chunks_batch(chunks, embeddings=embeddings)
     end = time.perf_counter()
 
     print("\033[34mBatch Insert completed in " + f"{end - start:.2f}" +  " seconds\033[0m")
 
-def test_insert_many_chunks_benchmark(rag_pipeline, chunks_and_embeddings):
+def test_insert_many_chunks_benchmark(vector_store, chunks_and_embeddings):
     """Benchmark for Many Chunks Insert (Adaptive Batch)"""
     chunks, embeddings = chunks_and_embeddings
-    rag_pipeline.vector_store.delete_document(TEST_FILE_PATH)
+    vector_store.delete_document(TEST_FILE_PATH)
 
     start = time.perf_counter()
     try:
-        rag_pipeline.vector_store.insert_many_chunks(chunks, embeddings=embeddings)
+        vector_store.insert_many_chunks(chunks, embeddings=embeddings)
         end = time.perf_counter()
         print("\033[34mMany Chunks Insert completed in " + f"{end - start:.2f}" + " seconds\033[0m")
     

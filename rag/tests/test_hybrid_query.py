@@ -1,5 +1,4 @@
 import pytest
-from rag_pipeline import RAGPipeline
 from vector_store import VectorStore
 
 # test the hybrid search on dataset from:
@@ -27,11 +26,6 @@ def vector_store():
     yield store
     store.close()
 
-@pytest.fixture(scope="module")
-def rag_pipeline(vector_store):
-    pipeline = RAGPipeline(vector_store)
-    return pipeline
-
 # utility function to print debug info
 def print_debug_info(query, expected_filename, objects):
     print("\n--- Debug Info ---")
@@ -46,9 +40,9 @@ def print_debug_info(query, expected_filename, objects):
             print("-------------------------------")
 
 @pytest.mark.parametrize("query, expected_filename", queries_and_expected)
-def test_query_hybrid_exact(rag_pipeline, query, expected_filename):
+def test_query_hybrid_exact(vector_store, query, expected_filename):
     """Test for exact top-1 match"""
-    objects = rag_pipeline.vector_store.hybrid_search(query, k=1)
+    objects = vector_store.hybrid_search(query, k=1)
     
     if not objects:
         assert expected_filename == "No results found", f"Expected '{expected_filename}' for '{query}' but found nothing."
@@ -58,9 +52,9 @@ def test_query_hybrid_exact(rag_pipeline, query, expected_filename):
         assert filename == expected_filename, f"Exact Mismatch for '{query}': Expected '{expected_filename}', found {filename}"    
     
 @pytest.mark.parametrize("query, expected_filename", queries_and_expected)
-def test_query_hybrid_autocut(rag_pipeline, query, expected_filename):
+def test_query_hybrid_autocut(vector_store, query, expected_filename):
     """Test with autocut method"""
-    objects = rag_pipeline.vector_store.hybrid_search_autocut(query, k=1)
+    objects = vector_store.hybrid_search_autocut(query, k=1)
     
     if not objects:
         assert expected_filename == "No results found", f"Expected '{expected_filename}' for '{query}' but found nothing."
@@ -70,9 +64,9 @@ def test_query_hybrid_autocut(rag_pipeline, query, expected_filename):
         assert expected_filename in filenames, f"Autocut Mismatch for '{query}': Expected '{expected_filename}', not found in {filenames}"
 
 @pytest.mark.parametrize("query, expected_filename", queries_and_expected)
-def test_query_hybrid_top3(rag_pipeline, query, expected_filename):
+def test_query_hybrid_top3(vector_store, query, expected_filename):
     """Test for top-3 relevance ranking"""
-    objects = rag_pipeline.vector_store.hybrid_search(query, k=3)
+    objects = vector_store.hybrid_search(query, k=3)
     
     if not objects:
         assert expected_filename == "No results found", f"Expected '{expected_filename}' for '{query}' but found nothing."
@@ -82,9 +76,9 @@ def test_query_hybrid_top3(rag_pipeline, query, expected_filename):
         assert expected_filename in filenames, f"Top-3 Mismatch for '{query}': Expected '{expected_filename}', not found in {filenames}"
 
 @pytest.mark.parametrize("query, expected_filename", queries_and_expected)
-def test_query_hybrid_autocut_top3(rag_pipeline, query, expected_filename):
+def test_query_hybrid_autocut_top3(vector_store, query, expected_filename):
     """Test for top-3 autocut relevance ranking"""
-    objects = rag_pipeline.vector_store.hybrid_search_autocut(query, k=3)
+    objects = vector_store.hybrid_search_autocut(query, k=3)
     
     if not objects:
         assert expected_filename == "No results found", f"Expected '{expected_filename}' for '{query}' but found nothing."
