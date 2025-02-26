@@ -1,4 +1,3 @@
-from fileinput import filename
 import pytest
 from rag_pipeline import RAGPipeline
 from vector_store import VectorStore

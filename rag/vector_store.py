@@ -1,7 +1,5 @@
 from ast import List
-import stat
 from typing import Generator
-from rag.tests.test_benchmark_insert import chunks_and_embeddings
 from weaviate import connect_to_local
 from weaviate.classes.query import MetadataQuery, Filter
 from weaviate.classes.config import Property, DataType, Configure, VectorDistances
@@ -15,6 +13,7 @@ from weaviate.exceptions import WeaviateConnectionError
 import os
 from document_processor import DocumentProcessor
 from chunk import Chunk
+from typing import List
 
 class VectorStore():
     def __init__(self):
@@ -166,7 +165,7 @@ class VectorStore():
         chunks = []
         for obj in objects:
             chunk = Chunk(
-                chunk_id=obj.id,
+                chunk_id=obj.properties["chunk_id"],
                 text=obj.properties["text"],
                 filename=obj.properties["filename"],
                 file_directory=obj.properties["file_directory"],

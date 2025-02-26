@@ -12,7 +12,7 @@ This project uses Docker Compose, which is included with Docker Desktop (downloa
 ### Commands inside the docker
 Watch for changes in Tailwind CSS (if not already working):
 ```bash
-docker exec -it vue_frontend npx tailwindcss -i ./src/assets/tailwind.css -o ./src/assets/output.css --watch
+docker exec -it frontend-app npx tailwindcss -i ./src/assets/tailwind.css -o ./src/assets/output.css --watch
 ```
 
 Services will be available at:

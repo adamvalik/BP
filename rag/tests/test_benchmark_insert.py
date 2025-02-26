@@ -1,4 +1,3 @@
-from tracemalloc import start
 import pytest
 from rag_pipeline import RAGPipeline
 from vector_store import VectorStore

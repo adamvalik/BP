@@ -3,7 +3,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
-from typing import List, Dict
 from weaviate.exceptions import WeaviateConnectionError
 import json
 
@@ -41,6 +40,7 @@ def query_endpoint(request: QueryRequest):
 
     
     chunks = vector_store.hybrid_search(request.query) # returns List[Chunk]
+    vector_store.close()
     if not chunks:
         # handle [] no chunks found
         pass
@@ -57,7 +57,7 @@ def query_endpoint(request: QueryRequest):
         for llm_response in llm_wrapper.get_stream_response(request.query, chunks):
             yield json.dumps({
                 "text": llm_response, # response.choices[0].delta.content (str)
-                "metadata": {}
+                "metadata": None
             }) + "\n"
     
     return StreamingResponse(stream(), media_type="application/json")

@@ -62,34 +62,41 @@
 
     <!-- chat area -->
     <div id="chatArea" class="flex-grow p-8 rounded-xl overflow-y-auto bg-gray-800">
-      <div v-for="(message, index) in messages" :key="index" class="mb-4">
-        <div class="flex items-start" :class="{'justify-end': message.isUser}">
-          <div
-            class="rounded-xl p-4 max-w-3xl break-words"
-            :class="[
-              message.isUser ? 'bg-teal-600 text-white ml-4' : 'bg-gray-700 text-gray-200 mr-4',
-              message === streamingMessage ? '' : ''
-            ]"
-          >
-            <div class="break-words" >{{ message.text }}</div>
-            <!-- metadata (if present) -->
-            <div v-if="message.metadata && this.devMode" class="text-xs text-gray-400 mt-2">
-              <div v-for="(value, key) in message.metadata" :key="key">
-                <strong>{{ key }}:</strong>
-                <template v-if="Array.isArray(value)">
-                  <div v-for="item in value" :key="item">
-                    <a :href="item" target="_blank" class="text-teal-400 underline">{{ item }}</a>
-                  </div>
-                </template>
-                <template v-else>
-                  {{ value }}
-                </template>
+      <template v-for="(query, index) in userQueries" :key="index">
+        <!-- User Query -->
+        <div class="mb-4">
+          <div class="flex items-start justify-end">
+            <div class="rounded-xl p-4 max-w-3xl break-words bg-teal-600 text-white ml-4">
+              <div class="break-words">{{ query }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User View: Display Text Response -->
+        <div v-if="!devMode" class="mb-4">
+          <div class="flex items-start">
+            <div class="rounded-xl p-4 max-w-3xl break-words bg-gray-700 text-gray-200 mr-4">
+              <div class="break-words">
+                {{ index === userQueries.length - 1 ? streamingText : responses[index] }}
               </div>
             </div>
           </div>
         </div>
-      </div>
+
+        <!-- Dev Mode: Display Chunks -->
+        <div v-if="devMode && retrievedChunks[index]" class="mb-4 p-4 rounded-lg bg-gray-700 text-gray-200">
+          <h3 class="text-teal-400 font-bold mb-2">Retrieved Chunks:</h3>
+          <ul>
+            <li v-for="(chunk, cIndex) in retrievedChunks[index]" :key="cIndex" class="mb-2">
+              <strong>Chunk ID:</strong> {{ chunk.chunk_id }}<br>
+              <strong>Score:</strong> {{ chunk.score }}<br>
+              <strong>Text:</strong> {{ chunk.text }}
+            </li>
+          </ul>
+        </div>
+      </template>
     </div>
+
 
     <!-- input area -->
     <div class="bg-gray-900 pt-4">
@@ -116,8 +123,10 @@ export default {
   data() {
     return {
       newMessage: "",
-      messages: [],
-      streamingMessage: null,
+      userQueries: [],
+      responses: [], // responses from LLM
+      retrievedChunks: [], // list of lists of dicts (chunks)
+      streamingText: "",
       devMode: false,
       userRole: "normal",
     };
@@ -125,69 +134,30 @@ export default {
   methods: {
     switchView() {
       this.devMode = !this.devMode;
+      this.scrollDown();
     },
-    // async messageImmediate() {
-    //   if (this.newMessage.trim() === "") return;
-
-    //   this.messages.push({
-    //     text: this.newMessage,
-    //     isUser: true,
-    //   });
-
-    //   const userMessage = this.newMessage;
-    //   this.newMessage = "";
-
-    //   try {
-    //     const response = await fetch("http://localhost:8000/message-immediate", {
-    //       method: "POST",
-    //       headers: { "Content-Type": "application/json" },
-    //       body: JSON.stringify({ text: userMessage }),
-    //     });
-
-    //     const data = await response.json();
-    //     this.receiveMessage(data);
-    //   } catch (error) {
-    //     console.error("Error sending message:", error);
-    //     this.receiveMessage({
-    //       reply_msg: "Sorry, something went wrong. Please try again.",
-    //     });
-    //   }
-    // },
-    // receiveMessage(data) {
-    //   this.messages.push({
-    //     text: data.reply_msg,
-    //     metadata: data.metadata,
-    //     isUser: false,
-    //   });
-
-    //   this.$nextTick(() => {
-    //     const chat = this.$el.querySelector("#chatArea");
-    //     chat.scrollTop = chat.scrollHeight;
-    //   });
-    // },
 
     async messageStreaming() {
       if (this.newMessage.trim() === "") return;
 
-      this.messages.push({
-        text: this.newMessage,
-        isUser: true,
-      });
+      this.userQueries.push(this.newMessage);
+      this.scrollDown();
 
       const userMessage = this.newMessage;
       this.newMessage = "";
+      let accumulatedText = "";
+      this.streamingText = "...";
 
       try {
-        const response = await fetch("http://localhost:8000/message-streaming",  {
+        const response = await fetch("http://localhost:8000/query",  {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: userMessage }),
+          body: JSON.stringify({ query: userMessage, rights: this.userRole }),
         });
-        if (!response.body) throw new Error("No response body");
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let accumulatedText = "";
+        let chunksStored = false;
 
         // eslint-disable-next-line no-constant-condition
         while (true) {
@@ -196,33 +166,34 @@ export default {
 
           const chunk = decoder.decode(value, { stream: true });
 
-          const { text, metadata } = JSON.parse(chunk);
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.trim()) {
+              const parsedLine = JSON.parse(line);
 
-          accumulatedText += text;
-          this.updateStreamingMessage(accumulatedText, metadata);
+              // check the first message for chunks
+              if (!chunksStored && parsedLine.metadata && parsedLine.metadata.chunks) {
+                this.retrievedChunks.push(parsedLine.metadata.chunks);
+                chunksStored = true;
+                continue; // start streaming LLM response
+              }
+
+              // accumulate and display LLM streaming response
+              if (parsedLine.text) {
+                accumulatedText += parsedLine.text;
+                this.streamingText = accumulatedText;
+                this.scrollDown();
+              }
+            }
+          }
         }
-
-        this.updateStreamingMessage(accumulatedText, null, true);
+        this.responses.push(accumulatedText);
+        this.scrollDown();
       } catch (error) {
-        console.error("Error in streaming simulation:", error);
+        console.error("Error in streaming:", error);
       }
     },
-    updateStreamingMessage(text, metadata = null, isComplete = false) {
-      if (this.streamingMessage) {
-        this.streamingMessage.text = text;
-
-        if (metadata) {
-          this.streamingMessage.metadata = metadata;
-        }
-      } else {
-        this.streamingMessage = { text, metadata, isUser: false };
-        this.messages.push(this.streamingMessage);
-      }
-
-      if (isComplete) {
-        this.streamingMessage = null;
-      }
-
+    scrollDown() {
       this.$nextTick(() => {
         const chat = this.$el.querySelector("#chatArea");
         chat.scrollTop = chat.scrollHeight;
