@@ -29,6 +29,7 @@ app.add_middleware(
 
 llm_wrapper = LLMWrapper()
 gd_downloader = GoogleDriveDownloader()
+# get notifications from google drive about changes in the folder
 gd_downloader.start_watch()
 
 @app.post("/query")
@@ -74,7 +75,15 @@ async def receive_webhook(
     print(f"x-goog-resource-state: {x_goog_resource_state}")
     print("========================\n")
     
-    return {"status": "success"}
+    # currently not working
+    # if x_goog_resource_state == "update":
+    #     gd_downloader.download_or_update_file(x_goog_resource_id)
+    # elif x_goog_resource_state in ["trash", "not_found"]:
+    #     gd_downloader.delete_local_file(x_goog_resource_id)
+    # else:
+    #     print(f"Unhandled resource state: {x_goog_resource_state}")
+    
+    return {"status": "success"} # ACK
 
     
 @app.get("/")

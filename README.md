@@ -51,7 +51,7 @@ pytest -v -s tests/some_test.py
 
 Set the `OPENAI_API_KEY` environment variable in `.env` file.
 
-## Google Drive Integration 
+## Google Drive Integration 
 
 ```bash
 ngrok http http://localhost:8000

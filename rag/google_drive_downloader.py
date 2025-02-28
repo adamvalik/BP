@@ -1,3 +1,4 @@
+from operator import sub
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from googleapiclient.http import MediaIoBaseDownload
@@ -8,7 +9,7 @@ import time
 class GoogleDriveDownloader:
     # folder id can be found in the URL of the folder in Google Drive
     FOLDER_ID = "1tnzT6UY-tW9Q3z4EE-1wnkvof4IIjnAr"
-    NGROK_URL = "https://7c61-213-220-197-96.ngrok-free.app/webhook" # /webhook endpoint in FastAPI
+    NGROK_URL = "https://7d0b-147-251-15-54.ngrok-free.app/webhook" # /webhook endpoint in FastAPI
     CREDENTIALS_FILE = "credentials.json"
 
     def __init__(self, download_path: str = "downloads"):
@@ -16,8 +17,7 @@ class GoogleDriveDownloader:
         self.download_path = download_path
 
         # ensure download path exists
-        if not os.path.exists(self.download_path):
-            os.makedirs(self.download_path)
+        self.ensure_download_path()
 
         # load Google Drive API credentials
         self.creds = service_account.Credentials.from_service_account_file(
@@ -25,6 +25,10 @@ class GoogleDriveDownloader:
             scopes=["https://www.googleapis.com/auth/drive"]
         )
         self.service = build("drive", "v3", credentials=self.creds)
+        
+    def ensure_download_path(self):
+        if not os.path.exists(self.download_path):
+            os.makedirs(self.download_path)
 
     def list_files_in_folder(self, folder_id):
         query = f"'{folder_id}' in parents and trashed=false"
@@ -42,7 +46,16 @@ class GoogleDriveDownloader:
             while not done:
                 status, done = downloader.next_chunk()
             self.file_cnt += 1
-
+            
+    def download_file_full_path(self, file_id: str, full_path: str):
+        request = self.service.files().get_media(fileId=file_id)
+        
+        with open(full_path, "wb") as f:
+            downloader = MediaIoBaseDownload(f, request)
+            done = False
+            while not done:
+                status, done = downloader.next_chunk()
+                
     def download_folder(self, folder_id, parent_path):
         files = self.list_files_in_folder(folder_id)
 
@@ -113,3 +126,59 @@ class GoogleDriveDownloader:
         for subfolder_id in subfolders:
             self.start_watch_folder(subfolder_id)
             time.sleep(1)
+            
+    def get_full_path(self, file_id):
+        # this method creates problems
+        path_parts = []
+        current_id = file_id
+
+        while True:
+            try:
+                file_metadata = self.service.files().get(fileId=current_id, fields="id, name, parents").execute()
+                name = file_metadata["name"]
+                parents = file_metadata.get("parents", [])
+
+                path_parts.insert(0, name)
+
+                if not parents:
+                    break
+                
+                current_id = parents[0]
+                
+                if current_id == self.FOLDER_ID:
+                    break
+            
+            except Exception as e:
+                print(f"Error getting full path: {e}")
+                break
+
+        # join the parts to form the full path
+        full_path = os.path.join(self.download_path, *path_parts)
+        print(f"Full path: {full_path}")
+        return full_path
+
+    def download_or_update_file(self, file_id):
+        try:            
+            self.ensure_download_path()
+            full_path = self.get_full_path(file_id)
+            self.download_file_full_path(file_id, full_path)
+            
+            print(f"File downloaded or updated: {full_path}")
+
+        except Exception as e:
+            print(f"Error downloading file: {e}")
+
+    def delete_local_file(self, file_id):
+        pass
+    # this is not working as I can not get the full path of the file that was deleted
+    #     try:
+    #         # full_path = self.get_full_path(file_id)
+            
+    #         if os.path.exists(full_path):
+    #             os.remove(full_path)
+    #             print(f"Local file deleted: {full_path}")
+    #         else:
+    #             print(f"Local file not found: {full_path}")
+
+    #     except Exception as e:
+    #         print(f"Error deleting file: {e}")
