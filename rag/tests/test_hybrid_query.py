@@ -34,8 +34,8 @@ def print_debug_info(query, expected_filename, chunks):
     if chunks:
         print(f"Total Results: {len(chunks)}")
         for chunk in chunks:
-            print(f"Score: {chunk.score} | Explain Score: {chunk.explain_score}")
             print(f"Filename: {chunk.filename}")
+            print(f"Score: {chunk.score} | Explain Score: {chunk.explain_score}")
             print(f"Text Snippet: {chunk.text[:100]}...")
             print("-------------------------------")
 

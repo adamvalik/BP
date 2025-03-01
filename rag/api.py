@@ -78,6 +78,8 @@ async def receive_webhook(
     # currently not working
     # if x_goog_resource_state == "update":
     #     gd_downloader.download_or_update_file(x_goog_resource_id)
+    #       # returns file_path -> vector_store.add_document(file_path)
+                # -> Document txt-dataset/graphics/graphics_70.txt already exists in the vector store. Skipping ingestion...
     # elif x_goog_resource_state in ["trash", "not_found"]:
     #     gd_downloader.delete_local_file(x_goog_resource_id)
     # else:

@@ -8,7 +8,7 @@ class Chunk:
     filename: str = ""
     file_directory: str = ""
     title: str = ""
-    page_number: int = 0
+    page: str = ""
     rights: str = ""
     score: float = 0.0
     explain_score: str = ""
@@ -16,11 +16,15 @@ class Chunk:
     def __str__(self):
         parts = [
             f"Chunk ID: {self.chunk_id}" if self.chunk_id else "",
-            f"Text: {self.text}" if self.text else "",
             f"Filename: {self.filename}" if self.filename else "",
             f"File Directory: {self.file_directory}" if self.file_directory else "",
             f"Title: {self.title}" if self.title else "",
-            f"Page Number: {self.page_number}" if self.page_number > 0 else "",
+            f"Page: {self.page}" if self.page else "",
             f"Rights: {self.rights}" if self.rights else ""
+            f"Text: {self.text}" if self.text else "",
         ]
         return "\n".join(filter(bool, parts))
+    
+    # for inserting (makes dictionary without score and explain_score)
+    def to_dict(self):
+        return {k: v for k, v in vars(self).items() if k not in {"score", "explain_score"}}

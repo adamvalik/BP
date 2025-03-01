@@ -23,7 +23,8 @@ class HuggingFaceEmbeddingModel(BaseEmbeddingModel):
             texts = [texts]
 
         if batch_size == 0:
-            print(f"Embedding {len(texts)} text chunks...")
+            if len(texts) > 1:
+                print(f"Embedding {len(texts)} text chunks...")
             embeddings = self.model.encode(texts)
         else:
             embeddings = []

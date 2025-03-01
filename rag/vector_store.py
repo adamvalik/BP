@@ -12,6 +12,7 @@ import os
 from document_processor import DocumentProcessor
 from chunk import Chunk
 from typing import List
+from utils import color_print
 
 class VectorStore():
     def __init__(self):
@@ -34,7 +35,7 @@ class VectorStore():
                 client = connect_to_local(host=host, port=int(port))
                 return client
             except WeaviateConnectionError as e:
-                print(f"Failed to connect to Weaviate: {e}, trying again...")
+                color_print(f"Failed to connect to Weaviate: {e}, trying again...", color="red")
                 time.sleep(2)
         return None
 
@@ -53,7 +54,7 @@ class VectorStore():
                     Property(name="filename", data_type=DataType.TEXT),
                     Property(name="file_directory", data_type=DataType.TEXT),
                     Property(name="title", data_type=DataType.TEXT),
-                    Property(name="page_number", data_type=DataType.INT),
+                    Property(name="page", data_type=DataType.TEXT),
                     Property(name="rights", data_type=DataType.TEXT)
                 ],
             )
@@ -62,15 +63,14 @@ class VectorStore():
 
     def delete_schema(self):
         self.client.collections.delete(self.collection_name)
-        print("Schema deleted.")
+        color_print("Schema deleted.", color="yellow")
 
     def insert_chunks(self, chunks, embeddings = None):
         if embeddings is None:
             embeddings = self.embedding_model.embed([chunk.text for chunk in chunks])
 
         for i, chunk in enumerate(tqdm(chunks, desc="One-by-One Insert", unit="chunk")):
-            # vars() converts the Chunks instance to a dict
-            self.collection.data.insert(properties=vars(chunk), vector=embeddings[i])
+            self.collection.data.insert(properties=chunk.to_dict(), vector=embeddings[i])
 
     def insert_chunks_batch(self, chunks, embeddings = None):
         if embeddings is None:
@@ -78,41 +78,45 @@ class VectorStore():
 
         with self.collection.batch.dynamic() as batch:
             for i, chunk in enumerate(tqdm(chunks, desc=f"Inserting Batches", unit="chunks")):
-                batch.add_object(properties=vars(chunk), vector=embeddings[i])
+                batch.add_object(properties=chunk.to_dict(), vector=embeddings[i])
 
     def insert_many_chunks(self, chunks, embeddings = None):
         if embeddings is None:
             embeddings = self.embedding_model.embed([chunk.text for chunk in chunks])
 
-        chunk_objs = [DataObject(properties=vars(chunk), vector=embeddings[i]) for i, chunk in enumerate(chunks)]
+        chunk_objs = [DataObject(properties=chunk.to_dict(), vector=embeddings[i]) for i, chunk in enumerate(chunks)]
         self.collection.data.insert_many(chunk_objs)
 
     def add_document(self, file_path):
         if self.document_exists(file_path):
             # avoid duplicate ingestion
-            print(f"Document {file_path} already exists in the vector store. Skipping ingestion...")
+            color_print(f"Document {file_path} already exists in the vector store. Skipping ingestion...", color="yellow")
         else:
-            chunks = DocumentProcessor.process(file_path, verbose=True)
+            document_processor = DocumentProcessor(file_path)
+            chunks = document_processor.process()
             if chunks:
                 self.insert_chunks(chunks)
 
     def add_documents(self, dir_path):
+        color_print(f"\nIngesting documents from directory: {dir_path}", color="blue")
         buffer = []
         for file_name in os.listdir(dir_path):
             file_path = os.path.join(dir_path, file_name)
             if os.path.isfile(file_path):
                 if self.document_exists(file_path):
                     # avoid duplicate ingestion
-                    print(f"Document {file_path} already exists in the vector store. Skipping ingestion...")
+                    color_print(f"Document {file_path} already exists in the vector store. Skipping ingestion...", color="yellow")
                 else:
-                    chunks = DocumentProcessor.process(file_path)
+                    document_processor = DocumentProcessor(file_path)
+                    chunks = document_processor.process()
                     if chunks:
                         buffer.extend(chunks)
 
             elif os.path.isdir(file_path):
                 self.add_documents(file_path)
 
-        self.insert_chunks_batch(buffer)
+        if buffer:
+            self.insert_chunks_batch(buffer)
 
     def delete_document(self, file_path):
         # NOTE: There is a configurable maximum limit (QUERY_MAXIMUM_RESULTS) on the number of objects
@@ -124,7 +128,7 @@ class VectorStore():
                 self.collection.data.delete_many(
                     where=Filter.by_property("filename").equal(filename)
                 )
-            print(f"File {file_path} successfully deleted from collection.")
+            color_print(f"File {file_path} successfully deleted from collection.")
 
     def close(self):
         if self.client:
@@ -158,7 +162,7 @@ class VectorStore():
                 filename=obj.properties["filename"],
                 file_directory=obj.properties["file_directory"],
                 title=obj.properties["title"],
-                page_number=obj.properties["page_number"],
+                page=obj.properties["page"],
                 rights=obj.properties["rights"],
                 score=obj.metadata.score,
                 explain_score=obj.metadata.explain_score
