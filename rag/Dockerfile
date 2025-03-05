@@ -1,5 +1,8 @@
 FROM python:3.9
 
+# ensure Python output is unbuffered so logs appear immediately
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
 COPY requirements.txt .
