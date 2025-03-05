@@ -9,7 +9,6 @@ from chunk import Chunk
 from embedding_model import EmbeddingModelFactory
 from weaviate.exceptions import WeaviateConnectionError
 import os
-from document_processor import DocumentProcessor
 from chunk import Chunk
 from typing import List
 from utils import color_print
@@ -50,6 +49,7 @@ class VectorStore():
                 ),
                 properties=[
                     Property(name="chunk_id", data_type=DataType.TEXT),
+                    Property(name="file_id", data_type=DataType.TEXT),
                     Property(name="text", data_type=DataType.TEXT),
                     Property(name="filename", data_type=DataType.TEXT),
                     Property(name="file_directory", data_type=DataType.TEXT),
@@ -64,6 +64,13 @@ class VectorStore():
     def delete_schema(self):
         self.client.collections.delete(self.collection_name)
         color_print("Schema deleted.", color="yellow")
+        
+    def document_exists(self, file_id):
+        response = self.collection.query.fetch_objects(
+            filters=Filter.by_property("file_id").equal(file_id),
+            limit=1
+        )
+        return len(response.objects) > 0
 
     def insert_chunks(self, chunks, embeddings = None):
         if embeddings is None:
@@ -86,49 +93,32 @@ class VectorStore():
 
         chunk_objs = [DataObject(properties=chunk.to_dict(), vector=embeddings[i]) for i, chunk in enumerate(chunks)]
         self.collection.data.insert_many(chunk_objs)
+        
+    def update_document(self, file_id, new_chunks):
+        if not self.document_exists(file_id):
+            color_print(f"File {file_id} not found in collection.", color="yellow")
+            return
 
-    def add_document(self, file_path):
-        if self.document_exists(file_path):
-            # avoid duplicate ingestion
-            color_print(f"Document {file_path} already exists in the vector store. Skipping ingestion...", color="yellow")
-        else:
-            document_processor = DocumentProcessor(file_path)
-            chunks = document_processor.process()
-            if chunks:
-                self.insert_chunks(chunks)
+        # delete existing document
+        self.delete_document(file_id)
+        # insert new chunks
+        self.insert_many_chunks(new_chunks)
 
-    def add_documents(self, dir_path):
-        color_print(f"\nIngesting documents from directory: {dir_path}", color="blue")
-        buffer = []
-        for file_name in os.listdir(dir_path):
-            file_path = os.path.join(dir_path, file_name)
-            if os.path.isfile(file_path):
-                if self.document_exists(file_path):
-                    # avoid duplicate ingestion
-                    color_print(f"Document {file_path} already exists in the vector store. Skipping ingestion...", color="yellow")
-                else:
-                    document_processor = DocumentProcessor(file_path)
-                    chunks = document_processor.process()
-                    if chunks:
-                        buffer.extend(chunks)
-
-            elif os.path.isdir(file_path):
-                self.add_documents(file_path)
-
-        if buffer:
-            self.insert_chunks_batch(buffer)
-
-    def delete_document(self, file_path):
+    def delete_document(self, file_id):
         # NOTE: There is a configurable maximum limit (QUERY_MAXIMUM_RESULTS) on the number of objects
         # that can be deleted in a single query (default 10,000). To delete more objects than the limit,
         # re-run the query.
-        if self.document_exists(file_path):
-            filename = file_path.split("/")[-1]
-            while self.document_exists(file_path):
-                self.collection.data.delete_many(
-                    where=Filter.by_property("filename").equal(filename)
-                )
-            color_print(f"File {file_path} successfully deleted from collection.")
+        deleted = False
+        while self.document_exists(file_id):
+            self.collection.data.delete_many(
+                where=Filter.by_property("file_id").equal(file_id)
+            )
+            deleted = True
+        
+        if deleted:
+            color_print(f"File {file_id} successfully deleted from collection.")
+        else:
+            color_print(f"File {file_id} not found in collection.", color="yellow")
 
     def close(self):
         if self.client:
@@ -158,6 +148,7 @@ class VectorStore():
         for obj in objects:
             chunk = Chunk(
                 chunk_id=obj.properties["chunk_id"],
+                file_id=obj.properties["file_id"],
                 text=obj.properties["text"],
                 filename=obj.properties["filename"],
                 file_directory=obj.properties["file_directory"],
@@ -170,19 +161,11 @@ class VectorStore():
             chunks.append(chunk)
         return chunks
     
-    def document_exists(self, file_path):
-        filename = file_path.split("/")[-1]
-        response = self.collection.query.fetch_objects(
-            filters=Filter.by_property("filename").equal(filename),
-            limit=1
-        )
-        return len(response.objects) > 0
-
-    def get_all_file_paths(self):
-        file_paths = []
+    def get_all_filenames(self):
+        filenames = []
         for item in self.collection.iterator():
-            file_path = item.properties["file_directory"] + "/" + item.properties["filename"]
-            if file_path not in file_paths:
-                file_paths.append(file_path)
+            filename = item.properties["filename"]
+            if filename not in filenames:
+                filenames.append(filename)
         
-        return file_paths    
+        return filenames    

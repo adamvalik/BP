@@ -1,10 +1,10 @@
-from email import message
 from unstructured.partition.text import partition_text
 from unstructured.chunking.title import chunk_by_title
 from unstructured.cleaners.core import clean
 import emoji
 import re
-from typing import List
+import io
+from typing import List, Optional
 from chunk import Chunk
 from utils import color_print
 
@@ -16,28 +16,43 @@ class DocumentProcessor():
     MIN_CHUNK_SIZE = 100
     # real maximum chunk size is MAX_CHUNK_SIZE + MIN_CHUNK_SIZE (due to merging small chunks)
     
-    
-    def __init__(self, file_path: str):
-        self.file_path = file_path
-        self.ext = file_path.lower().split(".")[-1]
+    def __init__(self, filename: str, file: Optional[bytes] = None, file_id: Optional[str] = None):
+        '''filename is full target file path or just a name of the file if bytes are specified'''
+        self.filename = filename
+        self.ext = self.filename.lower().split(".")[-1]
+        self.file = file
+        self.file_id = file_id if file_id else filename
         self.elements = []
         self.chunks = []
     
     def partition_elements(self):
+        if self.ext not in ["txt"]:
+            color_print(message="Unsupported file extension", color="red", additional_text=f": {self.ext}, processing of {self.filename} is skipped.")
+            return
+
         try:
-            if self.ext == "txt":
-                self.elements = partition_text(filename=self.file_path)
-            # elif self.ext == "pdf":
-            #     self.elements = partition_pdf(self.file_path)
+            if self.file:
+                # --- IN-MEMORY PARTITION ---
+                file_stream = io.BytesIO(self.file)
+                
+                if self.ext == "txt":
+                    self.elements = partition_text(file=file_stream)
+                # elif self.ext == "pdf":
+                #     self.elements = partition_pdf(file=file_stream)
+                
             else:
-                color_print(message="Unsupported file extension", color="red", additional_text=f": {self.ext}, processing of {self.file_path} is skipped.")
-                return
+                # --- DISK-BASED PARTITION ---
+                if self.ext == "txt":
+                    self.elements = partition_text(filename=self.filename)
+                # elif self.ext == "pdf":
+                #     self.elements = partition_pdf(self.filename)
+
         except FileNotFoundError:
-            color_print(message="File not found", color="red", additional_text=f": {self.file_path}, processing is skipped.")
+            color_print(message="File not found", color="red", additional_text=f": {self.filename}, processing is skipped.")
             return
         
         if not self.elements:
-            color_print(message="No elements found", color="red", additional_text=f" in {self.file_path}, processing is skipped.")
+            color_print(message="No elements found", color="red", additional_text=f" in {self.filename}, processing is skipped.")
             return
 
     def clean_elements(self):
@@ -78,12 +93,12 @@ class DocumentProcessor():
                 continue
 
             # extract metadata from original elements
-            meta = chunk.metadata.orig_elements[0].metadata
             c = Chunk(
-                chunk_id=f"{meta.filename}_{i}",
+                chunk_id=f"{self.file_id}_{i}",
+                file_id=self.file_id,
                 text=chunk.text,
-                filename=meta.filename,
-                file_directory=meta.file_directory,
+                filename=self.filename,
+                file_directory=chunk.metadata.orig_elements[0].metadata.file_directory,
                 title=curr_title,
             )
 
@@ -109,7 +124,7 @@ class DocumentProcessor():
         if not self.elements:
             return
 
-        color_print(f"File: {self.file_path}", color="blue")
+        color_print(f"File: {self.filename}", color="blue")
 
         color_print(f"Partitioned {len(self.elements)} elements")
         for el in self.elements:

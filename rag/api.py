@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from weaviate.exceptions import WeaviateConnectionError
+from contextlib import asynccontextmanager
 import json
 
 from vector_store import VectorStore
@@ -14,9 +15,22 @@ class QueryRequest(BaseModel):
     query: str
     rights: str
     
-load_dotenv()
+class FolderIngestRequest(BaseModel):
+    driveURL: str
+    
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    load_dotenv()
+    gd_downloader = GoogleDriveDownloader()
+    gd_downloader.initialize_changes_page_token()
+    channel_id, response_id = gd_downloader.start_changes_watch()
+    yield
+    gd_downloader.stop_changes_watch(channel_id, response_id)
+    print("Google Drive Changes watch stopped.")
+
+
+app = FastAPI(lifespan=lifespan)
 
 # CORS middleware
 app.add_middleware(
@@ -27,10 +41,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-llm_wrapper = LLMWrapper()
-gd_downloader = GoogleDriveDownloader()
-# get notifications from google drive about changes in the folder
-gd_downloader.start_watch()
+@app.get("/driveurl")
+async def get_drive_url():
+    gd_downloader = GoogleDriveDownloader()
+    url = gd_downloader.get_url() if not None else ""
+    return {"url": url}
+
+@app.post("/ingest_folder")
+async def ingest_folder(request: FolderIngestRequest):
+    gd_downloader = GoogleDriveDownloader()
+    gd_downloader.save_url(request.driveURL)
+    try:
+        vector_store = VectorStore()
+    except WeaviateConnectionError:
+        # handle weaviate connection error
+        raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
+
+    gd_downloader.bulk_ingest(vector_store)
+    vector_store.close()
+
+    return {"message": "Ingestion started."}
+
+@app.post("/delete_schema")
+async def delete_schema():
+    try:
+        vector_store = VectorStore()
+    except WeaviateConnectionError:
+        # handle weaviate connection error
+        raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
+    
+    vector_store.delete_schema()
+    vector_store.close()
+    return {"message": "Schema deleted."}
 
 @app.post("/query")
 def query_endpoint(request: QueryRequest):
@@ -46,6 +88,8 @@ def query_endpoint(request: QueryRequest):
     if not chunks:
         # handle [] no chunks found
         pass
+    
+    llm_wrapper = LLMWrapper()
 
     def stream():
         serialized_chunks = [vars(chunk) for chunk in chunks]
@@ -65,7 +109,7 @@ def query_endpoint(request: QueryRequest):
     return StreamingResponse(stream(), media_type="application/json")
 
 @app.post("/webhook")
-async def receive_webhook( 
+async def receive_notification( 
     x_goog_resource_id: str = Header(None), 
     x_goog_resource_state: str = Header(None)
 ):
@@ -75,19 +119,31 @@ async def receive_webhook(
     print(f"x-goog-resource-state: {x_goog_resource_state}")
     print("========================\n")
     
-    # currently not working
-    # if x_goog_resource_state == "update":
-    #     gd_downloader.download_or_update_file(x_goog_resource_id)
-    #       # returns file_path -> vector_store.add_document(file_path)
-                # -> Document txt-dataset/graphics/graphics_70.txt already exists in the vector store. Skipping ingestion...
-    # elif x_goog_resource_state in ["trash", "not_found"]:
-    #     gd_downloader.delete_local_file(x_goog_resource_id)
-    # else:
-    #     print(f"Unhandled resource state: {x_goog_resource_state}")
-    
+    if x_goog_resource_state == "change":
+        try:
+            vector_store = VectorStore()
+        except WeaviateConnectionError:
+            # handle weaviate connection error
+            raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
+        
+        gd_downloader = GoogleDriveDownloader()
+        gd_downloader.sync_changes(vector_store)
+        vector_store.close()
+        
     return {"status": "success"} # ACK
-
     
 @app.get("/")
 async def root():
     return {"message": "FastAPI Server is Running"}
+
+@app.get("/filenames")
+async def get_all_filenames():
+    try:
+        vector_store = VectorStore()
+    except WeaviateConnectionError:
+        # handle weaviate connection error
+        raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
+    
+    filenames = vector_store.get_all_filenames()
+    vector_store.close()
+    return {"filenames": filenames}

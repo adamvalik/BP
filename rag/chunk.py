@@ -4,6 +4,7 @@ from typing import List
 @dataclass
 class Chunk:
     chunk_id: str = ""
+    file_id: str = ""
     text: str = ""
     filename: str = ""
     file_directory: str = ""
@@ -16,6 +17,7 @@ class Chunk:
     def __str__(self):
         parts = [
             f"Chunk ID: {self.chunk_id}" if self.chunk_id else "",
+            f"File ID: {self.file_id}" if self.file_id else "",
             f"Filename: {self.filename}" if self.filename else "",
             f"File Directory: {self.file_directory}" if self.file_directory else "",
             f"Title: {self.title}" if self.title else "",
