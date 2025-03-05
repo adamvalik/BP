@@ -8,13 +8,11 @@ import os
 
 dataset_folder = "txt-dataset"
 
-vector_store = VectorStore()
-
-try:
-    color_print(f"\nIngesting documents from directory: {dataset_folder}", color="blue")
+def add_documents(folder_path):
+    color_print(f"\nIngesting documents from directory: {folder_path}", color="blue")
     buffer = []
-    for filename in os.listdir(dataset_folder):
-        file_path = os.path.join(dataset_folder, filename)
+    for filename in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, filename)
         if os.path.isfile(file_path):
             if vector_store.document_exists(file_path):
                 # avoid duplicate ingestion
@@ -26,10 +24,17 @@ try:
                     buffer.extend(chunks)
 
         elif os.path.isdir(file_path):
-            vector_store.add_documents(file_path)
+            add_documents(file_path)
 
     if buffer:
         vector_store.insert_chunks_batch(buffer)
 
+
+vector_store = VectorStore()
+
+try:
+    add_documents(dataset_folder)
+    color_print(f"\nIngestion complete!", color="green")
 finally:
     vector_store.close()
+    

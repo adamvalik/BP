@@ -61,4 +61,7 @@ def test_insert_many_chunks_benchmark(vector_store, chunks_and_embeddings):
     except weaviate.exceptions.WeaviateBatchError:
         color_print(f"Many Chunks Insert failed due to message larger than max", color="red")
         assert False
+    
+    vector_store.delete_document(TEST_FILE_PATH)
+
 
