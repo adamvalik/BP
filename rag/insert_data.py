@@ -2,11 +2,9 @@ from vector_store import VectorStore
 from document_processor import DocumentProcessor
 from utils import color_print
 import os
+import time
 
-# https://www.kaggle.com/datasets/jensenbaxter/10dataset-text-document-classification
-# download the dataset and extract it to a folder
-
-dataset_folder = "txt-dataset"
+dataset_folder = "txt-dataset-2/sport"
 
 def add_documents(folder_path):
     color_print(f"\nIngesting documents from directory: {folder_path}", color="blue")
@@ -33,8 +31,11 @@ def add_documents(folder_path):
 vector_store = VectorStore()
 
 try:
+    start_time = time.perf_counter()
     add_documents(dataset_folder)
     color_print(f"\nIngestion complete!", color="green")
+    end_time = time.perf_counter()
+    color_print(f"Total time: {end_time - start_time:.2f} seconds")
 finally:
     vector_store.close()
     

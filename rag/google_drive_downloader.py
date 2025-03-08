@@ -12,7 +12,7 @@ import uuid
 import json
 
 class GoogleDriveDownloader:
-    NGROK_URL = "https://524c-213-220-197-96.ngrok-free.app/webhook" # /webhook endpoint in FastAPI
+    NGROK_URL = "https://d57f-147-229-117-1.ngrok-free.app/webhook" # /webhook endpoint in FastAPI
     CREDENTIALS_FILE = "credentials.json"
     ROOT_ID_FILE = "root_url.json"
 

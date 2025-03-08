@@ -20,7 +20,7 @@ class VectorStore():
             raise WeaviateConnectionError("Failed to connect to Weaviate after multiple attempts.")
         self.collection_name = "DocumentChunks"
         self.get_schema()
-        self.embedding_model = EmbeddingModelFactory.get_model(model_type="huggingface", model_name="all-MiniLM-L6-v2")
+        self.embedding_model = EmbeddingModelFactory.get_model(model_type="huggingface", model_name="all-mpnet-base-v2")
         
     @staticmethod
     def connect() -> WeaviateClient:
@@ -140,7 +140,8 @@ class VectorStore():
             filters=Filter.by_property("rights").equal(rights) if rights else None
         )
         chunks = self.get_chunks_from_objs(response.objects)
-        return chunks if chunks[0].score > 0.5 else []
+        # chunks = chunks if chunks[0].score > 0.5 else []
+        return chunks
     
     @staticmethod
     def get_chunks_from_objs(objects) -> List[Chunk]:

@@ -12,6 +12,7 @@ class HuggingFaceEmbeddingModel(BaseEmbeddingModel):
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         self.model_name = model_name
         self.model = self._init_model()
+        self.model.half() # speeds up the embeding process
         
     def _init_model(self):
         # lazy import

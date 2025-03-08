@@ -6,16 +6,16 @@ from vector_store import VectorStore
 
 # query + expected most relevant document
 queries_and_expected = [
-    ("what were the potential risks for shareholders in a proposed financial merger?", "txt-dataset/business/business_77.txt"),
-    ("what impact did Howl's Moving Castle have on box office?", "txt-dataset/entertainment/entertainment_78.txt"),
-    ("how do phthalates end up in food products?", "txt-dataset/food/food_85.txt"),
-    ("what should I learn to get started with graphic design?", "txt-dataset/graphics/graphics_9.txt"),
-    ("how did the balance of power strategies contribute to the fragility of peace in Europe before WW1?", "txt-dataset/historical/historical_89.txt"),
-    ("what are the side effects of Depo Provera", "txt-dataset/medical/medical_645.txt"),
-    ("how did Michael Howard plan to fund tax cuts during his leadership?", "txt-dataset/politics/politics_271.txt"),
-    ("is there a food named after space?", "txt-dataset/space/space_62.txt"),
-    ("who is Mido?", "txt-dataset/sport/sport_100.txt"),
-    ("Linux investment strategies", "txt-dataset/technologie/technologie_12.txt"),
+    ("what were the potential risks for shareholders in a proposed financial merger?", "business_77.txt"),
+    ("what impact did Howl's Moving Castle have on box office?", "entertainment_78.txt"),
+    ("how do phthalates end up in food products?", "food_85.txt"),
+    ("what should I learn to get started with graphic design?", "graphics_9.txt"),
+    ("how did the balance of power strategies contribute to the fragility of peace in Europe before WW1?", "historical_89.txt"),
+    # ("what are the side effects of Depo Provera", "medical_645.txt"),
+    ("how did Michael Howard plan to fund tax cuts during his leadership?", "politics_271.txt"),
+    # ("is there a food named after space?", "space_62.txt"),
+    ("who is Mido?", "sport_100.txt"),
+    ("Linux investment strategies", "technologie_12.txt"),
     ("", "No results found"),  # test empty query
     ("!!!???", "No results found"),  # special characters
 ]

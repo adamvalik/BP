@@ -13,7 +13,8 @@ page_token.json
 
 # datasets
 rag/downloads/
-rag/txt-dataset/
+rag/txt-dataset
+rag/txt-dataset-2
 rag/tests/test-files/
 
 # persistent storage

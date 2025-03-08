@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from weaviate.exceptions import WeaviateConnectionError
 from contextlib import asynccontextmanager
 import json
+from reranker import Reranker
 
 from vector_store import VectorStore
 from llm_wraper import LLMWrapper
@@ -17,20 +18,20 @@ class QueryRequest(BaseModel):
     
 class FolderIngestRequest(BaseModel):
     driveURL: str
-    
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_dotenv()
-    gd_downloader = GoogleDriveDownloader()
-    gd_downloader.initialize_changes_page_token()
-    channel_id, response_id = gd_downloader.start_changes_watch()
+    # gd_downloader = GoogleDriveDownloader()
+    # gd_downloader.initialize_changes_page_token()
+    # channel_id, response_id = gd_downloader.start_changes_watch()
     yield
-    gd_downloader.stop_changes_watch(channel_id, response_id)
-    print("Google Drive Changes watch stopped.")
+    # gd_downloader.stop_changes_watch(channel_id, response_id)
+    # print("Google Drive Changes watch stopped.")
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(lifespan=lifespan) # uncomment for GDrive integration
+# app = FastAPI()
 
 # CORS middleware
 app.add_middleware(
@@ -88,6 +89,8 @@ def query_endpoint(request: QueryRequest):
     if not chunks:
         # handle [] no chunks found
         pass
+    
+    # reranked_chunks = Reranker
     
     llm_wrapper = LLMWrapper()
 
