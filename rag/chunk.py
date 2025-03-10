@@ -33,3 +33,6 @@ class Chunk:
     def to_dict(self):
         return {k: v for k, v in vars(self).items() if k not in {"token_count", "score", "reranked_score", "explain_score"}}
     
+    def log(self):
+        return {k: v for k, v in vars(self).items() if k in {"chunk_id", "filename", "title", "score", "reranked_score"}}
+    

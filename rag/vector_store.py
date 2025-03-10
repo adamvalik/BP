@@ -12,6 +12,7 @@ import os
 from chunk import Chunk
 from typing import List
 from utils import color_print
+import re
 
 class VectorStore():
     def __init__(self):
@@ -24,7 +25,7 @@ class VectorStore():
         
     @staticmethod
     def connect() -> WeaviateClient:
-        print("Connecting to Weaviate...")
+        color_print("Connecting to Weaviate...", color="yellow")
         weaviate_url = os.getenv("WEAVIATE_HOST", "http://localhost:8080")
         host, port = weaviate_url.replace("http://", "").split(":")
         
@@ -123,6 +124,15 @@ class VectorStore():
     def close(self):
         if self.client:
             self.client.close()
+            
+    def get_all_filenames(self):
+        filenames = []
+        for item in self.collection.iterator():
+            filename = item.properties["filename"]
+            if filename not in filenames:
+                filenames.append(filename)
+        
+        return filenames    
         
     def hybrid_search(self, query: str, rights: str = None, k: int = 5, alpha: float = 0.5, autocut: bool = False) -> List[Chunk]:
         assert 0 <= alpha <= 1, "Alpha must be between 0 and 1."
@@ -140,7 +150,6 @@ class VectorStore():
             filters=Filter.by_property("rights").equal(rights) if rights else None
         )
         chunks = self.get_chunks_from_objs(response.objects)
-        # chunks = chunks if chunks[0].score > 0.5 else []
         return chunks
     
     @staticmethod
@@ -157,16 +166,19 @@ class VectorStore():
                 page=obj.properties["page"],
                 rights=obj.properties["rights"],
                 score=obj.metadata.score,
-                explain_score=obj.metadata.explain_score
+                explain_score=VectorStore.format_explain_score(obj.metadata.explain_score)
             )
             chunks.append(chunk)
         return chunks
     
-    def get_all_filenames(self):
-        filenames = []
-        for item in self.collection.iterator():
-            filename = item.properties["filename"]
-            if filename not in filenames:
-                filenames.append(filename)
-        
-        return filenames    
+    @staticmethod
+    def format_explain_score(explain_score: str) -> str:
+        pattern = re.compile(r"normalized score: ([\d.]+)")
+        matches = pattern.findall(explain_score)
+
+        if len(matches) == 1:
+            return f"vector: {float(matches[0]):.2f}"
+        elif len(matches) == 2:
+            return f"keyword: {float(matches[0]):.2f} | vector: {float(matches[1]):.2f}"        
+        else:
+            return explain_score

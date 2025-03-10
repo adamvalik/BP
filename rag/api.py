@@ -8,9 +8,12 @@ from contextlib import asynccontextmanager
 import json
 from reranker import Reranker
 
+from utils import color_print
 from vector_store import VectorStore
 from llm_wraper import LLMWrapper
 from google_drive_downloader import GoogleDriveDownloader
+from rewriter import Rewriter
+from log import log
 
 class QueryRequest(BaseModel):
     query: str
@@ -83,19 +86,22 @@ def query_endpoint(request: QueryRequest):
         # handle weaviate connection error
         raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
 
-    chunks = vector_store.hybrid_search(request.query) # returns List[Chunk]
-    # chunks = vector_store.hybrid_search(request.query, request.rights)
-    vector_store.close()
-    if not chunks:
-        # handle [] no chunks found
+    rewritten_query = Rewriter.rewrite(request.query) # rewrite the query to optimize for retrieval
+    
+    chunks = vector_store.hybrid_search(rewritten_query) # returns List[Chunk]
+    vector_store.close()    
+    
+    reranked_chunks = Reranker.rerank(rewritten_query, chunks)
+    
+    if reranked_chunks[0].reranked_score < 0:
+        # not enough information to answer the query
         pass
     
-    # reranked_chunks = Reranker
-    
     llm_wrapper = LLMWrapper()
+    response = []
 
     def stream():
-        serialized_chunks = [vars(chunk) for chunk in chunks]
+        serialized_chunks = [vars(chunk) for chunk in reranked_chunks]
         yield json.dumps({
             "text": None,
             "metadata": {
@@ -103,11 +109,15 @@ def query_endpoint(request: QueryRequest):
             }
         }) + "\n"
 
-        for llm_response in llm_wrapper.get_stream_response(request.query, chunks):
+
+        for llm_response in llm_wrapper.get_stream_response(request.query, reranked_chunks):
+            response.append(llm_response)
             yield json.dumps({
                 "text": llm_response, # response.choices[0].delta.content (str)
                 "metadata": None
             }) + "\n"
+            
+        log(request.query, rewritten_query, chunks, reranked_chunks, "".join(response))
     
     return StreamingResponse(stream(), media_type="application/json")
 

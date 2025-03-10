@@ -57,3 +57,11 @@ Set the `OPENAI_API_KEY` environment variable in `.env` file.
 ngrok http http://localhost:8000
 ```
 to expose the FastAPI server to the internet, so Google Drive can send notifications about changes. Run this before starting the services and set the provided URL.
+
+## Scripts
+
+For scripts or tests run in virtual environment in rag folder:
+```bash
+python -m scripts.some_script
+python -m tests.some_test
+```

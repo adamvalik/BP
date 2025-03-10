@@ -88,9 +88,7 @@
         <div v-if="!devMode" class="mb-4">
           <div class="flex items-start">
             <div class="rounded-xl p-4 max-w-3xl break-words bg-gray-700 text-gray-200 mr-4">
-              <div class="break-words">
-                {{ index === userQueries.length - 1 ? streamingText : responses[index] }}
-              </div>
+              <div class="break-words" v-html="renderMarkdown(index === userQueries.length - 1 ? streamingText : responses[index])"></div>
             </div>
           </div>
         </div>
@@ -99,11 +97,12 @@
         <div v-if="devMode && retrievedChunks[index]" class="mb-4 p-4 rounded-lg bg-gray-700 text-gray-200">
           <h3 class="text-teal-400 font-bold mb-2">Retrieved Chunks:</h3>
           <ul>
-            <li v-for="(chunk, cIndex) in retrievedChunks[index]" :key="cIndex" class="mb-2">
-              <span class="bold">File:</span> {{ chunk.filename }}<br>
-              <span class="bold">Score:</span> {{ chunk.score }}<br>
-              <span class="bold">Explanation:</span> {{ chunk.explain_score }}<br>
-              <span class="bold">Text:</span> {{ chunk.text }}
+            <li v-for="(chunk, cIndex) in retrievedChunks[index]" :key="cIndex" class="mb-4">
+              <span class="font-bold">File:</span> {{ chunk.filename }}<br>
+              <span class="font-bold">Score:</span> {{ chunk.score.toFixed(3) }} ({{ chunk.explain_score }})<br>
+              <span class="font-bold">Reranked Score:</span> {{ chunk.reranked_score.toFixed(3) }}<br>
+              <span class="font-bold">Title:</span> {{ chunk.title }}<br>
+              <span class="font-bold">Text:</span> {{ chunk.text }}
             </li>
           </ul>
         </div>
@@ -226,6 +225,8 @@
 </template>
 
 <script>
+import { marked } from 'marked';
+
 export default {
   data() {
     return {
@@ -251,6 +252,15 @@ export default {
   },
 
   methods: {
+
+    renderMarkdown(text) {
+      if (!text) return "";
+      
+      const citationRegex = /\[(.*?)\]/g;
+      const formattedText = text.replace(citationRegex, '<span class="italic text-sm text-gray-300">[$1]</span>');
+
+      return marked.parse(formattedText);
+    },
 
     switchView() {
       this.devMode = !this.devMode;

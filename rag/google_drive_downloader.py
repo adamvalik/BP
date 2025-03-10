@@ -12,11 +12,12 @@ import uuid
 import json
 
 class GoogleDriveDownloader:
-    NGROK_URL = "https://d57f-147-229-117-1.ngrok-free.app/webhook" # /webhook endpoint in FastAPI
+    NGROK_URL = "https://d07f-213-220-197-96.ngrok-free.app/webhook" # /webhook endpoint in FastAPI
     CREDENTIALS_FILE = "credentials.json"
     ROOT_ID_FILE = "root_url.json"
 
-    def __init__(self):        
+    def __init__(self):      
+        self.file_cnt = 0  
         # load Google Drive API credentials
         self.creds = service_account.Credentials.from_service_account_file(
             self.CREDENTIALS_FILE,
@@ -235,8 +236,6 @@ class GoogleDriveDownloader:
             
     def handle_change(self, change: dict, vector_store: VectorStore):
         """
-        Decide how to handle a single change record.
-        A 'change' might look like:
         {
             "fileId": "abc123",
             "file": {

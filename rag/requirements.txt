@@ -14,6 +14,10 @@ dataclasses
 pytest
 python-dotenv
 
+ragas
+langchain_openai
+langchain_huggingface
+
 # unstructured_inference
 # pdfminer.six
 # pi-heif

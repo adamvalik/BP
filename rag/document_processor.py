@@ -212,6 +212,6 @@ class DocumentProcessor():
         self.chunk_elements()
 
         if verbose: 
-            self.log(elements=False, output_file="chunking.txt")
+            self.log(elements=False, output_file="chunking.log")
 
         return self.chunks

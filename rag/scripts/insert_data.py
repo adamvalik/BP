@@ -4,7 +4,12 @@ from utils import color_print
 import os
 import time
 
-dataset_folder = "txt-dataset-2/sport"
+# path to a dataset folder
+# "/Users/adamvalik/Downloads/kaggle-wiki"
+# "/Users/adamvalik/Downloads/txt-dataset-1"
+# "/Users/adamvalik/Downloads/txt-dataset-2"
+
+dataset_folder = ""
 
 def add_documents(folder_path):
     color_print(f"\nIngesting documents from directory: {folder_path}", color="blue")
@@ -27,6 +32,10 @@ def add_documents(folder_path):
     if buffer:
         vector_store.insert_chunks_batch(buffer)
 
+
+if dataset_folder == "":
+    color_print("Please set the dataset_folder variable to the path of the dataset folder.", color="red")
+    exit()
 
 vector_store = VectorStore()
 

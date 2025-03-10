@@ -2,15 +2,15 @@ from document_processor import DocumentProcessor
 import os
 
 TEST_FOLDER = "/Users/adamvalik/Downloads/kaggle-wiki"
-FROM = 11
-TO = 11
+FROM = 10
+TO = 10
 
 # ----------------------------------------------------------------------------------------------
 files = os.listdir(TEST_FOLDER)
 files.remove(".DS_Store")
 files.sort(key=lambda x: int(x.split("_")[-1].split(".")[0]))
 
-for i, file_name in enumerate(files, start=1):
+for i, file_name in enumerate(files):
     if FROM <= i <= TO:
         file_path = os.path.join(TEST_FOLDER, file_name)
         if os.path.isfile(file_path):
