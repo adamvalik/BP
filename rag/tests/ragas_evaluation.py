@@ -1,8 +1,10 @@
 from vector_store import VectorStore
 from weaviate.exceptions import WeaviateConnectionError
 from reranker import Reranker
+from rewriter import Rewriter
 from llm_wraper import LLMWrapper
 from utils import color_print
+from tqdm import tqdm
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -10,7 +12,7 @@ load_dotenv()
 import json
 # load the testset
 testset = []
-with open("tests/test-sets/testset1.jsonl", "r") as f:
+with open("tests/test-sets/testset-test-wiki.jsonl", "r") as f:
     for line in f:
         testset.append(json.loads(line))
 
@@ -21,17 +23,19 @@ except WeaviateConnectionError:
     exit()
 
 dataset = []
-for test_sample in testset:
+for test_sample in tqdm(testset, desc="Generating responses for tests", unit="test"):
     query = test_sample["user_input"]
     reference = test_sample["reference"]
     reference_contexts = test_sample["reference_contexts"]
     
-    chunks = vector_store.hybrid_search(query, k=3)
+    rewritten_query = Rewriter.rewrite(query) # rewrite the query to optimize for retrieval
+    
+    chunks = vector_store.hybrid_search(rewritten_query, k=10)
     if not chunks:
-        color_print("No chunks found for query: ", color="red", additional_text=query)
+        color_print("No chunks found for query: ", color="red", additional_text=rewritten_query)
         continue
     
-    reranked_chunks = Reranker.rerank(query, chunks)
+    reranked_chunks = Reranker.rerank(rewritten_query, chunks)
     contexts = [chunk.text for chunk in reranked_chunks]
     
     llm_wrapper = LLMWrapper()
@@ -49,6 +53,8 @@ for test_sample in testset:
 
 vector_store.close()
 
+color_print(f"All responses generated, starting to evaluate...")
+
 # evaluation
 from ragas import EvaluationDataset
 from ragas import evaluate
@@ -57,9 +63,9 @@ from langchain_openai import ChatOpenAI
 from ragas.metrics import (
     LLMContextPrecisionWithoutReference,  # user_input, response, retrieved_contexts
     LLMContextPrecisionWithReference,  # user_input, reference, retrieved_contexts
-    NonLLMContextPrecisionWithReference,  # retrieved_contexts, reference_contexts
+    NonLLMContextPrecisionWithReference,  # retrieved_contexts, --reference_contexts--
     LLMContextRecall,  # user_input, reference, retrieved_contexts
-    NonLLMContextRecall,  # retrieved_contexts, reference_contexts
+    NonLLMContextRecall,  # retrieved_contexts, --reference_contexts--
     NoiseSensitivity,  # user_input, response, reference, retrieved_contexts -- mode="relevant" or "irrelevant"
     ResponseRelevancy,  # user_input, response
     Faithfulness,  # user_input, response, retrieved_contexts
@@ -82,7 +88,7 @@ result = evaluate(
         # NoiseSensitivity(),
         # NoiseSensitivity(mode="irrelevant"),
         # ResponseRelevancy(),
-        # Faithfulness(),
+        Faithfulness(),
         # FaithfulnesswithHHEM(), # exceeds the token limit
         # FactualCorrectness()
     ],

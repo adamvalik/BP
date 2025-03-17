@@ -9,7 +9,7 @@ import time
 # "/Users/adamvalik/Downloads/txt-dataset-1"
 # "/Users/adamvalik/Downloads/txt-dataset-2"
 
-dataset_folder = ""
+dataset_folder = "/Users/adamvalik/Downloads/test-wiki"
 
 def add_documents(folder_path):
     color_print(f"\nIngesting documents from directory: {folder_path}", color="blue")
@@ -42,7 +42,7 @@ vector_store = VectorStore()
 try:
     start_time = time.perf_counter()
     add_documents(dataset_folder)
-    color_print(f"\nIngestion complete!", color="green")
+    color_print(f"\nIngestion complete!")
     end_time = time.perf_counter()
     color_print(f"Total time: {end_time - start_time:.2f} seconds")
 finally:
