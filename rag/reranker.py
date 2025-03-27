@@ -20,6 +20,8 @@ class Reranker:
             chunk.reranked_score = float(rerank['score']) #TypeError: Object of type float32 is not JSON serializable
             reranked_chunks.append(chunk)
 
+        # filter out reranked chunk with negative score
+        # reranked_chunks = [chunk for chunk in reranked_chunks if chunk.reranked_score > 0]
         return reranked_chunks
 
 if __name__ == "__main__":

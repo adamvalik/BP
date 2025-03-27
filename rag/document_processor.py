@@ -1,4 +1,3 @@
-import enum
 from unstructured.partition.text import partition_text
 from unstructured.chunking.title import chunk_by_title
 from unstructured.cleaners.core import clean
@@ -8,16 +7,15 @@ from typing import List, Optional
 from chunk import Chunk
 from utils import color_print
 from transformers import AutoTokenizer
+
 import nltk
-# nltk.download('punkt')
+
+# try:
+#     nltk.data.find('tokenizers/punkt')
+# except LookupError:
+#     nltk.download('punkt')
 
 class DocumentProcessor():
-    # chunking parameters
-    # MAX_CHUNK_SIZE = 1500
-    # PREFFERED_CHUNK_SIZE = 1000
-    # OVERLAP = 50
-    # MIN_CHUNK_SIZE = 100
-    # real maximum chunk size is MAX_CHUNK_SIZE + MIN_CHUNK_SIZE (due to merging small chunks)
     
     def __init__(self, filename: str, file: Optional[bytes] = None, file_id: Optional[str] = None):
         '''filename is full target file path or just a name of the file if bytes are specified'''

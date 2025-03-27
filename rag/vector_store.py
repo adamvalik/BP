@@ -10,7 +10,7 @@ from embedding_model import EmbeddingModelFactory
 from weaviate.exceptions import WeaviateConnectionError
 import os
 from chunk import Chunk
-from typing import List
+from typing import List, Optional
 from utils import color_print
 import re
 
@@ -66,36 +66,36 @@ class VectorStore():
         self.client.collections.delete(self.collection_name)
         color_print("Schema deleted.", color="yellow")
         
-    def document_exists(self, file_id):
+    def document_exists(self, file_id: str) -> bool:
         response = self.collection.query.fetch_objects(
             filters=Filter.by_property("file_id").equal(file_id),
             limit=1
         )
         return len(response.objects) > 0
 
-    def insert_chunks(self, chunks, embeddings = None):
+    def insert_chunks(self, chunks: List[Chunk], embeddings: Optional[List[float]] = None):
         if embeddings is None:
             embeddings = self.embedding_model.embed([chunk.text for chunk in chunks])
 
         for i, chunk in enumerate(tqdm(chunks, desc="One-by-One Insert", unit="chunk")):
             self.collection.data.insert(properties=chunk.to_dict(), vector=embeddings[i])
 
-    def insert_chunks_batch(self, chunks, embeddings = None):
+    def insert_chunks_batch(self, chunks: List[Chunk], embeddings: Optional[List[float]] = None):
         if embeddings is None:
-            embeddings = self.embedding_model.embed([chunk.text for chunk in chunks])
+            embeddings = self.embedding_model.embed([chunk.text for chunk in chunks], batch_size=100)
 
         with self.collection.batch.dynamic() as batch:
             for i, chunk in enumerate(tqdm(chunks, desc=f"Inserting Batches", unit="chunks")):
                 batch.add_object(properties=chunk.to_dict(), vector=embeddings[i])
 
-    def insert_many_chunks(self, chunks, embeddings = None):
+    def insert_many_chunks(self, chunks: List[Chunk], embeddings: Optional[List[float]] = None):
         if embeddings is None:
             embeddings = self.embedding_model.embed([chunk.text for chunk in chunks])
 
         chunk_objs = [DataObject(properties=chunk.to_dict(), vector=embeddings[i]) for i, chunk in enumerate(chunks)]
         self.collection.data.insert_many(chunk_objs)
         
-    def update_document(self, file_id, new_chunks):
+    def update_document(self, file_id: str, new_chunks: List[Chunk]):
         if not self.document_exists(file_id):
             color_print(f"File {file_id} not found in collection.", color="yellow")
             return
@@ -105,7 +105,7 @@ class VectorStore():
         # insert new chunks
         self.insert_many_chunks(new_chunks)
 
-    def delete_document(self, file_id):
+    def delete_document(self, file_id: str):
         # NOTE: There is a configurable maximum limit (QUERY_MAXIMUM_RESULTS) on the number of objects
         # that can be deleted in a single query (default 10,000). To delete more objects than the limit,
         # re-run the query.
@@ -125,7 +125,7 @@ class VectorStore():
         if self.client:
             self.client.close()
             
-    def get_all_filenames(self):
+    def get_all_filenames(self) -> List[str]:
         filenames = []
         for item in self.collection.iterator():
             filename = item.properties["filename"]

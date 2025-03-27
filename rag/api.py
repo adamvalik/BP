@@ -34,7 +34,6 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan) # uncomment for GDrive integration
-# app = FastAPI()
 
 # CORS middleware
 app.add_middleware(
@@ -88,14 +87,14 @@ def query_endpoint(request: QueryRequest):
 
     rewritten_query = Rewriter.rewrite(request.query) # rewrite the query to optimize for retrieval
     
-    chunks = vector_store.hybrid_search(rewritten_query) # returns List[Chunk]
+    chunks = vector_store.hybrid_search(rewritten_query, autocut=True, k=3) # returns List[Chunk]
     vector_store.close()    
     
     reranked_chunks = Reranker.rerank(rewritten_query, chunks)
     
-    if reranked_chunks[0].reranked_score < 0:
-        # not enough information to answer the query
-        pass
+    # if reranked_chunks[0].reranked_score < 0:
+    #     # not enough information to answer the query
+    #     pass
     
     llm_wrapper = LLMWrapper()
     response = []
@@ -149,6 +148,20 @@ async def receive_notification(
 async def root():
     return {"message": "FastAPI Server is Running"}
 
+@app.get("/sync")
+async def sync():
+    try:
+        vector_store = VectorStore()
+    except WeaviateConnectionError:
+        # handle weaviate connection error
+        raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
+    
+    gd_downloader = GoogleDriveDownloader()
+    gd_downloader.sync_changes(vector_store)
+    vector_store.close()
+    
+    return {"message": "Sync completed."}
+    
 @app.get("/filenames")
 async def get_all_filenames():
     try:

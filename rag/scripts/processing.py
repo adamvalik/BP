@@ -1,9 +1,9 @@
 from document_processor import DocumentProcessor
 import os
 
-TEST_FOLDER = "/Users/adamvalik/Downloads/kaggle-wiki"
-FROM = 10
-TO = 10
+TEST_FOLDER = "/Users/adamvalik/Downloads/test-wiki"
+FROM = 9   
+TO = 9
 
 # ----------------------------------------------------------------------------------------------
 files = os.listdir(TEST_FOLDER)

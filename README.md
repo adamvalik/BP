@@ -60,8 +60,7 @@ to expose the FastAPI server to the internet, so Google Drive can send notificat
 
 ## Scripts
 
-For scripts or tests run in virtual environment in rag folder:
+For scripts run in virtual environment in rag folder:
 ```bash
 python -m scripts.some_script
-python -m tests.some_test
 ```

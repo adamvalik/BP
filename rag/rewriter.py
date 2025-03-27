@@ -1,5 +1,3 @@
-import openai
-import os
 
 class Rewriter:
     
@@ -7,10 +5,19 @@ class Rewriter:
     def rewrite(query: str) -> str:
         """using openai's gpt model, rewrite the query"""
         # load the openai model
+        import os
+        import openai
+        
         model = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         dev_message = (
-            "Rewrite the query to optimize for retrieval. "
-            "If a query is real nonsense, just return the original query. "
+            "You are a query rewriting assistant in a retrieval-based system (RAG). "
+            "Your task is to rephrase user queries to improve retrieval quality for both semantic and keyword search. "
+            "Ensure the rewritten query preserves the original intent, improves clarity, and is more specific if possible. "
+            "If the query is nonsensical or unrewritable (e.g. random characters or very short), return it unchanged. "
+            "Do NOT add keywords or assumptions beyond the user's input.\n\n"
+            "Examples:\n"
+            "- Input: 'how does law work usa' → Output: 'legal system in the United States'\n"
+            "- Input: 'asdkljwe' → Output: 'asdkljwe'\n"
         )
 
         response = model.chat.completions.create(

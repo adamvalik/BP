@@ -25,6 +25,7 @@ def add_documents(folder_path):
                 chunks = document_processor.process()
                 if chunks:
                     buffer.extend(chunks)
+                    color_print(f"Document {file_path} processed.")
 
         elif os.path.isdir(file_path):
             add_documents(file_path)

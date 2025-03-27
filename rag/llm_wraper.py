@@ -10,28 +10,29 @@ class LLMWrapper:
     def construct_messages(self, user_query: str, chunks: List[Chunk]):
         dev_message = (
             "You are an AI assistant that answers questions based on the provided context. "
-            "The chunks are ranked by relevance, with the most relevant appearing first. "
+            # context
+            
             "Cite sources in this format: [File: {filename}, Section: {title}]. "
+            "Use the section title if available, otherwise if it's 'Untitled' omit it completely.\n\n"
             
-            "Only use the information from the context provided. Do NOT speculate or guess. "
+            "Only use the information from the context provided. "
             "If the information is insufficient, explicitly respond with: "
-            "'I do not have enough context to answer this question.' "
+            "'My knowledge base does not provide information to answer this question.' "
             
-            "Structure responses clearly and concisely. "
+            "Structure responses clearly in markdown style. "
             "Limit responses to **3 sentences** unless further clarification is required. "
-            "Avoid unnecessary details and do NOT repeat the same information. "
         )
         
         messages = [
             {"role": "developer", "content": [{"type": "text", "text": dev_message}]},
-            {"role": "user", "content": [{"type": "text", "text": f"Question: {user_query}. The context is as follows:"}]}       
+            {"role": "user", "content": [{"type": "text", "text": f"Question: {user_query}. The context is as follows:\n\n"}]}       
         ]
         
         not_present = "Untitled"
         for chunk in chunks:
             messages[1]["content"].append({
                 "type": "text",
-                "text": f"File: {chunk.filename}\nTitle: {chunk.title if chunk.title else not_present}\nContext: {chunk.text}"
+                "text": f"File: {chunk.filename}\nTitle: {chunk.title if chunk.title else not_present}\nText: {chunk.text}"
             })
         
         return messages
