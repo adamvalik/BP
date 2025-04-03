@@ -19,6 +19,7 @@ class VectorStore():
         self.client = self.connect()
         if self.client is None:
             raise WeaviateConnectionError("Failed to connect to Weaviate after multiple attempts.")
+        color_print("Connected to Weaviate.")
         self.collection_name = "DocumentChunks"
         self.get_schema()
         self.embedding_model = EmbeddingModelFactory.get_model(model_type="huggingface", model_name="all-mpnet-base-v2")
@@ -120,6 +121,15 @@ class VectorStore():
             color_print(f"File {file_id} successfully deleted from collection.")
         else:
             color_print(f"File {file_id} not found in collection.", color="yellow")
+            
+    def get_rights(self, file_id: str) -> Optional[str]:
+        response = self.collection.query.fetch_objects(
+            filters=Filter.by_property("file_id").equal(file_id),
+            limit=1
+        )
+        if len(response.objects) == 0:
+            return None
+        return response.objects[0].properties["rights"]
 
     def close(self):
         if self.client:
@@ -136,7 +146,6 @@ class VectorStore():
         
     def hybrid_search(self, query: str, rights: str = None, k: int = 5, alpha: float = 0.5, autocut: bool = False) -> List[Chunk]:
         assert 0 <= alpha <= 1, "Alpha must be between 0 and 1."
-        assert rights in [None, "normal", "superior"], "Rights must be None, 'normal', or 'superior'."
         
         embedding = self.embedding_model.embed(query)[0]
         response = self.collection.query.hybrid(

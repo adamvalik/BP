@@ -145,6 +145,10 @@ class GoogleDriveDownloader:
                 else:
                     bytes = self.download_file_in_memory(file_id)
                     document_processor = DocumentProcessor(filename=filename, file=bytes, file_id=file_id)
+                    if "superior" in parent_path:
+                        document_processor.add_rights("superior")
+                    elif "user" in parent_path:
+                        document_processor.add_rights("user") 
                     chunks = document_processor.process()
                     if chunks:
                         buffer.extend(chunks)
@@ -267,8 +271,10 @@ class GoogleDriveDownloader:
         filename = file_obj["name"]
         mime_type = file_obj["mimeType"]
 
+        rights = ""
         # If we already have the file, remove the old version to replace it
         if vector_store.document_exists(file_id):
+            rights = vector_store.get_rights(file_id)
             vector_store.delete_document(file_id)
 
         # Now re-ingest
@@ -279,6 +285,8 @@ class GoogleDriveDownloader:
                 file=file_bytes,
                 file_id=file_id
             )
+            if rights:
+                doc_processor.add_rights(rights)
             chunks = doc_processor.process()
             vector_store.insert_chunks(chunks)
             color_print(f"[Changes] File {filename} updated/created in DB.", "green")

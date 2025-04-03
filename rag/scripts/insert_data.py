@@ -22,6 +22,7 @@ def add_documents(folder_path):
                 color_print(f"Document {file_path} already exists in the vector store. Skipping ingestion...", color="yellow")
             else:
                 document_processor = DocumentProcessor(filename=file_path)
+                document_processor.add_rights("user")
                 chunks = document_processor.process()
                 if chunks:
                     buffer.extend(chunks)

@@ -1,35 +1,36 @@
 
 class Rewriter:
+    CHATHISTORY_SIZE = 3  # number of turns to consider in chat history
     
     @staticmethod
-    def rewrite(query: str) -> str:
-        """using openai's gpt model, rewrite the query"""
-        # load the openai model
+    def rewrite(query: str, history: list[str] = None) -> str:
         import os
         import openai
         
-        model = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        dev_message = (
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        prompt = (
             "You are a query rewriting assistant in a retrieval-based system (RAG). "
-            "Your task is to rephrase user queries to improve retrieval quality for both semantic and keyword search. "
-            "Ensure the rewritten query preserves the original intent, improves clarity, and is more specific if possible. "
-            "If the query is nonsensical or unrewritable (e.g. random characters or very short), return it unchanged. "
-            "Do NOT add keywords or assumptions beyond the user's input.\n\n"
-            "Examples:\n"
-            "- Input: 'how does law work usa' → Output: 'legal system in the United States'\n"
-            "- Input: 'asdkljwe' → Output: 'asdkljwe'\n"
+            "Your task is to rephrase the user query for optimal retrieval. "
+            "If the input is nonsensical, return it unchanged. "
         )
 
-        response = model.chat.completions.create(
+        if history:
+            history_text = "\n\n".join(history[-Rewriter.CHATHISTORY_SIZE:])
+            prompt += (
+                "Use the following chat history to understand the context of the query in case of follow-up question:\n"
+                f"{history_text}\n"
+            )
+
+        response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": dev_message},
+                {"role": "developer", "content": prompt},
                 {"role": "user", "content": query}
             ]
         )
         
-        return response.choices[0].message.content.strip()
-        
+        return response.choices[0].message.content.strip()        
     
 if __name__ == "__main__":
     # demonstration

@@ -3,6 +3,7 @@ from typing import List
 from sentence_transformers import CrossEncoder
 
 class Reranker:
+    CUTOFF_SCORE = 0.6
     
     @staticmethod
     def rerank(query: str, candidate_chunks: List[Chunk]) -> List[Chunk]:
@@ -20,8 +21,17 @@ class Reranker:
             chunk.reranked_score = float(rerank['score']) #TypeError: Object of type float32 is not JSON serializable
             reranked_chunks.append(chunk)
 
-        # filter out reranked chunk with negative score
-        # reranked_chunks = [chunk for chunk in reranked_chunks if chunk.reranked_score > 0]
+        def normalize(values):
+            return [(x - min(values)) / (max(values) - min(values)) if max(values) != min(values) else 1.0 for x in values]
+        
+        # normalize the scores
+        scores = [chunk.reranked_score for chunk in reranked_chunks]
+        normalized_scores = normalize(scores)
+        for i, chunk in enumerate(reranked_chunks):
+            chunk.reranked_score = normalized_scores[i]
+        
+        # filter out chunks with low scores (irrelevant)
+        reranked_chunks = [chunk for chunk in reranked_chunks if chunk.reranked_score > Reranker.CUTOFF_SCORE]
         return reranked_chunks
 
 if __name__ == "__main__":

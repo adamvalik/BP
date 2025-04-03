@@ -9,63 +9,61 @@ class LLMWrapper:
         
     def construct_messages(self, user_query: str, chunks: List[Chunk]):
         dev_message = (
-            "You are an AI assistant that answers questions based on the provided context. "
-            # context
-            
-            "Cite sources in this format: [File: {filename}, Section: {title}]. "
-            "Use the section title if available, otherwise if it's 'Untitled' omit it completely.\n\n"
-            
-            "Only use the information from the context provided. "
-            "If the information is insufficient, explicitly respond with: "
-            "'My knowledge base does not provide information to answer this question.' "
-            
-            "Structure responses clearly in markdown style. "
-            "Limit responses to **3 sentences** unless further clarification is required. "
+            "You are a generator in a retrieval-based system (RAG). "
+            "Your task is to answer the user's question using the information from the context. "
+            "Here are retrieved relevant text chunks which form the context:\n"
         )
         
-        messages = [
-            {"role": "developer", "content": [{"type": "text", "text": dev_message}]},
-            {"role": "user", "content": [{"type": "text", "text": f"Question: {user_query}. The context is as follows:\n\n"}]}       
+        for chunk in chunks:
+            dev_message += (
+                f"File: {chunk.filename}\n"
+                f"Title: {chunk.title if chunk.title else 'Untitled'}\n"
+                f"Text: {chunk.text}\n\n"
+            )
+        
+        dev_message += (
+            "Only use the information from the context provided. "
+            "For each information you use, provide a citation to the source in format: [File: {filename}, Section: {title}]. "
+            "If the title is 'Untitled', omit the title in the citation completely.\n"
+            "If the provided context is insufficient to answer the question, explicitly respond with: "
+            "'My knowledge base does not provide information to answer this question.' \n"
+            "Structure responses clearly in markdown style. "
+            "Limit responses to **3 sentences** unless further clarification is required."
+        )
+        
+        return [
+            {"role": "developer", "content": dev_message},
+            {"role": "user", "content": user_query}
         ]
         
-        not_present = "Untitled"
-        for chunk in chunks:
-            messages[1]["content"].append({
-                "type": "text",
-                "text": f"File: {chunk.filename}\nTitle: {chunk.title if chunk.title else not_present}\nText: {chunk.text}"
-            })
-        
-        return messages
 
     def get_stream_response(self, query: str, chunks: List[Chunk]):
         messages = self.construct_messages(query, chunks)
         
         try:
-            stream = self.client.chat.completions.create(
+            # streaming response (yield each response as it arrives)
+            for response in self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages,
-                max_completion_tokens=300,
+                max_tokens=500,
+                temperature=0.2,
                 stream=True
-            )
-            
-            # streaming response (yield each response as it arrives)
-            for response in stream:
+            ):
                 if response.choices[0].delta.content is not None:
                     yield response.choices[0].delta.content
 
         except openai.APIStatusError as e:
-            yield f"[ERROR] OpenAI API Error:"
-            yield f"Status Code: {e.status_code}"
-            yield f"Response: {e.response}"
+            yield f"[ERROR] OpenAI API Error: {e.status_code} - {e.response}"
             
     def get_response(self, query: str, chunks: List[Chunk]):
         messages = self.construct_messages(query, chunks)
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=messages,
-                max_tokens=300
+                max_tokens=500,
+                temperature=0.2,
             )
             
             return response.choices[0].message.content

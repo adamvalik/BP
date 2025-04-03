@@ -14,10 +14,12 @@ from llm_wraper import LLMWrapper
 from google_drive_downloader import GoogleDriveDownloader
 from rewriter import Rewriter
 from log import log
+from typing import List
 
 class QueryRequest(BaseModel):
     query: str
     rights: str
+    history: List[str]
     
 class FolderIngestRequest(BaseModel):
     driveURL: str
@@ -44,21 +46,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/driveurl")
-async def get_drive_url():
-    gd_downloader = GoogleDriveDownloader()
-    url = gd_downloader.get_url() if not None else ""
-    return {"url": url}
-
-@app.post("/ingest_folder")
-async def ingest_folder(request: FolderIngestRequest):
-    gd_downloader = GoogleDriveDownloader()
-    gd_downloader.save_url(request.driveURL)
+def connect_to_vector_store():
     try:
         vector_store = VectorStore()
     except WeaviateConnectionError:
         # handle weaviate connection error
         raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
+    return vector_store
+
+@app.get("/driveurl")
+def get_drive_url():
+    gd_downloader = GoogleDriveDownloader()
+    url = gd_downloader.get_url() if not None else ""
+    return {"url": url}
+
+@app.post("/ingest_folder")
+def ingest_folder(request: FolderIngestRequest):
+    gd_downloader = GoogleDriveDownloader()
+    gd_downloader.save_url(request.driveURL)
+    vector_store = connect_to_vector_store()
 
     gd_downloader.bulk_ingest(vector_store)
     vector_store.close()
@@ -66,12 +72,8 @@ async def ingest_folder(request: FolderIngestRequest):
     return {"message": "Ingestion started."}
 
 @app.post("/delete_schema")
-async def delete_schema():
-    try:
-        vector_store = VectorStore()
-    except WeaviateConnectionError:
-        # handle weaviate connection error
-        raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
+def delete_schema():
+    vector_store = connect_to_vector_store()
     
     vector_store.delete_schema()
     vector_store.close()
@@ -79,23 +81,28 @@ async def delete_schema():
 
 @app.post("/query")
 def query_endpoint(request: QueryRequest):
-    try:
-        vector_store = VectorStore()
-    except WeaviateConnectionError:
-        # handle weaviate connection error
-        raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
-
-    rewritten_query = Rewriter.rewrite(request.query) # rewrite the query to optimize for retrieval
+    print(f"Query: {request.query}, Rights: {request.rights}, History: {request.history}")
     
-    chunks = vector_store.hybrid_search(rewritten_query, autocut=True, k=3) # returns List[Chunk]
+    vector_store = connect_to_vector_store()
+        
+    # rewrite the query to optimize for retrieval
+    rewritten_query = Rewriter.rewrite(request.query, request.history)
+
+    color_print(f"Rewritten query: {rewritten_query}", color="yellow")
+    
+    if request.rights == "user":
+        chunks = vector_store.hybrid_search(rewritten_query, autocut=True, k=3, rights="user")
+    else:
+        chunks = vector_store.hybrid_search(rewritten_query, autocut=True, k=3)
+        
+    color_print(f"Hybrid search returned {len(chunks)} chunks.", color="yellow")
+        
     vector_store.close()    
     
     reranked_chunks = Reranker.rerank(rewritten_query, chunks)
     
-    # if reranked_chunks[0].reranked_score < 0:
-    #     # not enough information to answer the query
-    #     pass
-    
+    color_print(f"Reranked chunks: {len(reranked_chunks)}", color="yellow")
+        
     llm_wrapper = LLMWrapper()
     response = []
 
@@ -109,7 +116,7 @@ def query_endpoint(request: QueryRequest):
         }) + "\n"
 
 
-        for llm_response in llm_wrapper.get_stream_response(request.query, reranked_chunks):
+        for llm_response in llm_wrapper.get_stream_response(rewritten_query, reranked_chunks):
             response.append(llm_response)
             yield json.dumps({
                 "text": llm_response, # response.choices[0].delta.content (str)
@@ -117,6 +124,8 @@ def query_endpoint(request: QueryRequest):
             }) + "\n"
             
         log(request.query, rewritten_query, chunks, reranked_chunks, "".join(response))
+    
+    color_print("Generating response...", color="yellow")
     
     return StreamingResponse(stream(), media_type="application/json")
 
@@ -145,11 +154,11 @@ async def receive_notification(
     return {"status": "success"} # ACK
     
 @app.get("/")
-async def root():
+def root():
     return {"message": "FastAPI Server is Running"}
 
 @app.get("/sync")
-async def sync():
+def sync():
     try:
         vector_store = VectorStore()
     except WeaviateConnectionError:
@@ -163,7 +172,7 @@ async def sync():
     return {"message": "Sync completed."}
     
 @app.get("/filenames")
-async def get_all_filenames():
+def get_all_filenames():
     try:
         vector_store = VectorStore()
     except WeaviateConnectionError:

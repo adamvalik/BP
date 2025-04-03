@@ -33,23 +33,23 @@
 
       <!-- roles -->
       <div class="flex items-center space-x-4 pr-4">
-        <label class="text-sm text-gray-300">User Role:</label>
-        <!-- normal role -->
+        <label class="text-sm text-gray-300">Role:</label>
+        <!-- user role -->
         <label
           class="flex items-center space-x-2 cursor-pointer"
-          :class="{'text-teal-400': userRole === 'normal', 'text-gray-300': userRole !== 'normal'}"
+          :class="{'text-teal-400': userRole === 'user', 'text-gray-300': userRole !== 'user'}"
         >
           <input
             type="radio"
-            value="normal"
+            value="user"
             v-model="userRole"
             class="hidden"
           />
           <div
             class="w-4 h-4 border-2 rounded-full"
-            :class="userRole === 'normal' ? 'bg-teal-500 border-teal-500' : 'border-gray-400'"
+            :class="userRole === 'user' ? 'bg-teal-500 border-teal-500' : 'border-gray-400'"
           ></div>
-          <span>Normal</span>
+          <span>User</span>
         </label>
 
         <!-- superior role -->
@@ -236,7 +236,7 @@ export default {
       retrievedChunks: [], // list of lists of dicts (chunks)
       streamingText: "",
       devMode: false,
-      userRole: "normal",
+      userRole: "user",
       isStreaming: false,
 
       showModal: false,
@@ -368,12 +368,21 @@ export default {
       this.newMessage = "";
       let accumulatedText = "";
       this.streamingText = "...";
+      
+      // format history as Q&A
+      const formattedHistory = this.userQueries
+          .slice(0, this.responses.length)
+          .map((q, i) => `Q: ${q}\nA: ${this.responses[i]}`);
 
       try {
-        const response = await fetch("http://localhost:8000/query",  {
+          const response = await fetch("http://localhost:8000/query", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: userMessage, rights: this.userRole }),
+          body: JSON.stringify({
+              query: userMessage,
+              rights: this.userRole,
+              history: formattedHistory
+          }),
         });
 
         const reader = response.body.getReader();

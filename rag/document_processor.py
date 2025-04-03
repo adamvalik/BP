@@ -25,6 +25,10 @@ class DocumentProcessor():
         self.file_id = file_id if file_id else filename
         self.elements = []
         self.chunks = []
+        self.rights = ""
+        
+    def add_rights(self, rights: str):
+        self.rights = rights
     
     def partition_elements(self):
         if self.ext not in ["txt"]:
@@ -119,7 +123,8 @@ class DocumentProcessor():
                 filename=self.filename,
                 file_directory=file_directory if file_directory else self.elements[0].metadata.file_directory,
                 title=title,
-                token_count=curr_token_count
+                token_count=curr_token_count,
+                rights=self.rights
             ))
             chunk_id += 1
     
@@ -202,8 +207,8 @@ class DocumentProcessor():
                     print(str(chunk))
                     print("-"*50)
                 color_print(f"Chunked {len(self.chunks)} chunks from {len(self.elements)} elements")
-
-    def process(self, verbose: bool = False) -> List[Chunk]:
+                
+    def process(self, verbose: bool = False, ) -> List[Chunk]:
         # processing pipeline
         self.partition_elements()
         self.clean_elements(remove_titles=True, remove_list_of_titles=True)
