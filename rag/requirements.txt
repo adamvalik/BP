@@ -9,6 +9,8 @@ google-auth-oauthlib
 google-auth-httplib2
 google-api-python-client
 sentence-transformers
+transformers
+accelerate
 openai
 dataclasses
 pytest
@@ -18,8 +20,10 @@ ragas
 langchain_openai
 langchain_huggingface
 
-# unstructured_inference
-# pdfminer.six
-# pi-heif
-# pdf2image
-# markdown
+unstructured_inference
+pdfminer.six
+pi-heif
+pdf2image
+markdown
+python-docx
+unstructured_pytesseract

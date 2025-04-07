@@ -5,7 +5,7 @@
       <div class="flex pl-3">
         <!-- user view button -->
         <button
-          class="px-4 py-2 text-white rounded-t-xl hover:bg-teal-500"
+          class="px-4 py-2 text-white rounded-t-xl hover:bg-teal-500 transition-all duration-100"
           :class="[devMode ? 'bg-teal-600' : 'bg-teal-500']"
           @click="switchView"
         >
@@ -13,7 +13,7 @@
         </button>
         <!-- dev mode button -->
         <button
-          class="px-4 py-2 text-white rounded-t-xl hover:bg-teal-500"
+          class="px-4 py-2 text-white rounded-t-xl hover:bg-teal-500 transition-all duration-100"
           :class="[!devMode ? 'bg-teal-600' : 'bg-teal-500']"
           @click="switchView"
         >
@@ -24,7 +24,7 @@
       <!-- button to open modal -->
       <div v-if="userRole === 'superior'">
         <button
-            class="px-4 py-2 bg-teal-600 text-white rounded-t-xl hover:bg-teal-500"
+            class="px-4 py-2 bg-teal-600 text-white rounded-t-xl hover:bg-teal-500 transition-all duration-100"
             @click="openModal"
         >
             Google Drive Integration
@@ -33,7 +33,6 @@
 
       <!-- roles -->
       <div class="flex items-center space-x-4 pr-4">
-        <label class="text-sm text-gray-300">Role:</label>
         <!-- user role -->
         <label
           class="flex items-center space-x-2 cursor-pointer"
@@ -109,19 +108,38 @@
       </template>
     </div>
 
-
     <!-- input area -->
     <div class="bg-gray-900 pt-4">
       <form @submit.prevent="messageStreaming">
-        <div class="flex">
+        <div class="flex space-x-2">
           <input
             v-model="newMessage"
             type="text"
             :placeholder="isStreaming ? ' ' : 'Enter your question...'"
-            class="flex-grow p-4 rounded-xl bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            class="flex-grow p-4 rounded-xl bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all duration-100"
             :disabled="isStreaming"
           />
-          <button type="submit" class="ml-2 px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-500">
+
+          <!-- toggle chat history button -->
+          <button
+            type="button"
+            @click="toggleChatHistory"
+            class="w-28 rounded-xl text-sm text-center leading-tight transition-all duration-100"
+            :class="{
+              'bg-gray-700 hover:bg-gray-600 text-teal-400': useHistory,
+              'bg-gray-800 hover:bg-gray-700 text-gray-400': !useHistory
+            }"
+          >
+            <span class="block">Chat History</span>
+            <span class="block font-semibold">{{ useHistory ? 'Enabled' : 'Disabled' }}</span>
+          </button>  
+
+          <!-- submit button -->
+          <button 
+            type="submit" 
+            class="w-28 bg-teal-600 text-white rounded-xl hover:bg-teal-500 transition-all duration-100"
+            :disabled="isStreaming"
+          >
             Send
           </button>
         </div>
@@ -238,6 +256,7 @@ export default {
       devMode: false,
       userRole: "user",
       isStreaming: false,
+      useHistory: false,
 
       showModal: false,
       driveURL: "",
@@ -260,6 +279,10 @@ export default {
       const formattedText = text.replace(citationRegex, '<span class="italic text-sm text-gray-300">[$1]</span>');
 
       return marked.parse(formattedText);
+    },
+
+    toggleChatHistory() {
+      this.useHistory = !this.useHistory;
     },
 
     switchView() {
@@ -381,7 +404,8 @@ export default {
           body: JSON.stringify({
               query: userMessage,
               rights: this.userRole,
-              history: formattedHistory
+              history: formattedHistory,
+              use_history: this.useHistory
           }),
         });
 

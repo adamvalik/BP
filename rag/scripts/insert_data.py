@@ -3,13 +3,15 @@ from document_processor import DocumentProcessor
 from utils import color_print
 import os
 import time
+from dotenv import load_dotenv
+load_dotenv()
 
 # path to a dataset folder
 # "/Users/adamvalik/Downloads/kaggle-wiki"
 # "/Users/adamvalik/Downloads/txt-dataset-1"
 # "/Users/adamvalik/Downloads/txt-dataset-2"
 
-dataset_folder = "/Users/adamvalik/Downloads/test-wiki"
+dataset_folder = "/Users/adamvalik/Downloads/samples"
 
 def add_documents(folder_path):
     color_print(f"\nIngesting documents from directory: {folder_path}", color="blue")
@@ -23,7 +25,7 @@ def add_documents(folder_path):
             else:
                 document_processor = DocumentProcessor(filename=file_path)
                 document_processor.add_rights("user")
-                chunks = document_processor.process()
+                chunks = document_processor.process(verbose=True)
                 if chunks:
                     buffer.extend(chunks)
                     color_print(f"Document {file_path} processed.")
@@ -33,7 +35,6 @@ def add_documents(folder_path):
 
     if buffer:
         vector_store.insert_chunks_batch(buffer)
-
 
 if dataset_folder == "":
     color_print("Please set the dataset_folder variable to the path of the dataset folder.", color="red")

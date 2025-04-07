@@ -20,6 +20,7 @@ class QueryRequest(BaseModel):
     query: str
     rights: str
     history: List[str]
+    use_history: bool
     
 class FolderIngestRequest(BaseModel):
     driveURL: str
@@ -81,12 +82,15 @@ def delete_schema():
 
 @app.post("/query")
 def query_endpoint(request: QueryRequest):
-    print(f"Query: {request.query}, Rights: {request.rights}, History: {request.history}")
+    print(f"Query: {request.query}, Rights: {request.rights}, Use History: {request.use_history}, History: {request.history}")
     
     vector_store = connect_to_vector_store()
         
     # rewrite the query to optimize for retrieval
-    rewritten_query = Rewriter.rewrite(request.query, request.history)
+    if request.use_history:
+        rewritten_query = Rewriter.rewrite_with_history(request.query, request.history)
+    else:
+        rewritten_query = Rewriter.rewrite(request.query)
 
     color_print(f"Rewritten query: {rewritten_query}", color="yellow")
     
@@ -105,6 +109,7 @@ def query_endpoint(request: QueryRequest):
         
     llm_wrapper = LLMWrapper()
     response = []
+    llm_query = rewritten_query if request.use_history else request.query
 
     def stream():
         serialized_chunks = [vars(chunk) for chunk in reranked_chunks]
@@ -116,7 +121,7 @@ def query_endpoint(request: QueryRequest):
         }) + "\n"
 
 
-        for llm_response in llm_wrapper.get_stream_response(rewritten_query, reranked_chunks):
+        for llm_response in llm_wrapper.get_stream_response(llm_query, reranked_chunks):
             response.append(llm_response)
             yield json.dumps({
                 "text": llm_response, # response.choices[0].delta.content (str)

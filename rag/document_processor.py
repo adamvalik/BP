@@ -1,4 +1,9 @@
+from fileinput import filename
 from unstructured.partition.text import partition_text
+from unstructured.partition.pdf import partition_pdf
+from unstructured.partition.doc import partition_doc
+from unstructured.partition.docx import partition_docx
+from unstructured.partition.image import partition_image
 from unstructured.chunking.title import chunk_by_title
 from unstructured.cleaners.core import clean
 import emoji
@@ -7,6 +12,7 @@ from typing import List, Optional
 from chunk import Chunk
 from utils import color_print
 from transformers import AutoTokenizer
+from collections import deque
 
 import nltk
 
@@ -31,7 +37,7 @@ class DocumentProcessor():
         self.rights = rights
     
     def partition_elements(self):
-        if self.ext not in ["txt"]:
+        if self.ext not in ["txt", "pdf", "doc", "docx", "jpg", "png", "heic"]:
             color_print(message="Unsupported file extension", color="red", additional_text=f": {self.ext}, processing of {self.filename} is skipped.")
             return
 
@@ -42,15 +48,27 @@ class DocumentProcessor():
                 
                 if self.ext == "txt":
                     self.elements = partition_text(file=file_stream)
-                # elif self.ext == "pdf":
-                #     self.elements = partition_pdf(file=file_stream)
+                elif self.ext == "pdf":
+                    self.elements = partition_pdf(file=file_stream)
+                elif self.ext == "doc":
+                    self.elements = partition_doc(file=file_stream)
+                elif self.ext == "docx":
+                    self.elements = partition_docx(file=file_stream)
+                elif self.ext == "jpg" or self.ext == "png" or self.ext == "heic":
+                    self.elements = partition_image(file=file_stream)
                 
             else:
                 # --- DISK-BASED PARTITION ---
                 if self.ext == "txt":
                     self.elements = partition_text(filename=self.filename)
-                # elif self.ext == "pdf":
-                #     self.elements = partition_pdf(self.filename)
+                elif self.ext == "pdf":
+                    self.elements = partition_pdf(filename=self.filename)
+                elif self.ext == "doc":
+                    self.elements = partition_doc(filename=self.filename)
+                elif self.ext == "docx":
+                    self.elements = partition_docx(filename=self.filename)
+                elif self.ext == "jpg" or self.ext == "png" or self.ext == "heic":
+                    self.elements = partition_image(filename=self.filename)
 
         except FileNotFoundError:
             color_print(message="File not found", color="red", additional_text=f": {self.filename}, processing is skipped.")
@@ -89,8 +107,8 @@ class DocumentProcessor():
             el for el in self.elements 
             if el.text.strip() and el.category not in ["Header", "Footer"]
         ]
-            
-    def chunk_elements(self) -> List[Chunk]:
+        
+    def chunk_elements(self):
         if not self.elements:
             return
         
@@ -105,6 +123,7 @@ class DocumentProcessor():
         chunk_id = 0
         last_sentence = ""
         last_sentence_token_count = 0
+        chunk_element_indices = deque()
         
         # process filename and file directory (in disk-based partitioning, self.filename is the full path)
         file_directory = ""
@@ -112,10 +131,23 @@ class DocumentProcessor():
             parts = self.filename.split("/")
             file_directory = "/".join(parts[:-1])
             self.filename = parts[-1]
-            
+           
+        # helper function to calculate the page range 
+        def get_page_range(start_idx, end_idx) -> str:
+            pages = {
+                self.elements[i].metadata.page_number
+                for i in range(start_idx, end_idx)
+                if self.elements[i].metadata.page_number is not None
+            }
+            if not pages:
+                return ""
+            pages = sorted(pages)
+            return str(pages[0]) if len(pages) == 1 else f"{pages[0]}-{pages[-1]}"
+
         # helper function to add a chunk
-        def append_chunk():
-            nonlocal curr_chunk_text, curr_token_count, chunk_id
+        def append_chunk(start_idx, end_idx):
+            nonlocal curr_chunk_text, curr_token_count, chunk_id, title
+            page = get_page_range(start_idx, end_idx)
             self.chunks.append(Chunk(
                 text=curr_chunk_text.strip(),
                 chunk_id=f"{self.file_id}_{chunk_id}",
@@ -123,50 +155,50 @@ class DocumentProcessor():
                 filename=self.filename,
                 file_directory=file_directory if file_directory else self.elements[0].metadata.file_directory,
                 title=title,
+                page=page,
                 token_count=curr_token_count,
                 rights=self.rights
             ))
             chunk_id += 1
     
         # process the text for each element
-        for el in self.elements:
-                    
-            # split to sentences
-            sentences = nltk.tokenize.sent_tokenize(el.text)
-     
-            # set initial title       
-            if el.category == "Title" and title == "":
-                title = el.text
+        for i, el in enumerate(self.elements):
             
-            for sentence in sentences:
+            # split to sentences
+            for sentence in nltk.tokenize.sent_tokenize(el.text):
                 sentence_token_count = len(tokenizer.tokenize(sentence))
                 
                 # if adding another sentence exceeds the token limit (or it's a new title), close the current chunk
                 if curr_token_count + sentence_token_count > max_tokens or el.category == "Title":
                     if curr_chunk_text.strip():
-                        append_chunk()
+                        end_idx = i
+                        start_idx = chunk_element_indices[0] if chunk_element_indices else end_idx
+                        append_chunk(start_idx, end_idx)
                         
                         # for non-title elements, start a new chunk with the overlap of the last sentence
                         if el.category != "Title":
                             curr_chunk_text = last_sentence + " "
                             curr_token_count = last_sentence_token_count
+                            chunk_element_indices = deque([i - 1])
                         else:
                             curr_chunk_text = ""
                             curr_token_count = 0
+                            chunk_element_indices.clear()
                         
-                # append the sentence to the current chunk
                 if el.category == "Title":
                     title = el.text  # update title
-                    curr_chunk_text += sentence + "\n\n"
-                else:
-                    curr_chunk_text += sentence + " "
 
-                curr_token_count += len(tokenizer.tokenize(sentence))
+                # append the sentence to the current chunk
+                curr_chunk_text += sentence + ("\n\n" if el.category == "Title" else " ")
+                curr_token_count += sentence_token_count
                 last_sentence = sentence
                 last_sentence_token_count = sentence_token_count
+                chunk_element_indices.append(i)
         
         if curr_chunk_text.strip():
-            append_chunk()
+            start_idx = chunk_element_indices[0] if chunk_element_indices else i
+            end_idx = i
+            append_chunk(start_idx, end_idx)
             
     def log(self, elements: bool = True, chunks: bool = True, output_file: Optional[str] = None):
         if not self.elements:
@@ -215,6 +247,6 @@ class DocumentProcessor():
         self.chunk_elements()
 
         if verbose: 
-            self.log(elements=False, output_file="chunking.log")
+            self.log(elements=True, output_file="chunking.log")
 
         return self.chunks

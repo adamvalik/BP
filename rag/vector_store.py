@@ -19,10 +19,10 @@ class VectorStore():
         self.client = self.connect()
         if self.client is None:
             raise WeaviateConnectionError("Failed to connect to Weaviate after multiple attempts.")
-        color_print("Connected to Weaviate.")
         self.collection_name = "DocumentChunks"
         self.get_schema()
         self.embedding_model = EmbeddingModelFactory.get_model(model_type="huggingface", model_name="all-mpnet-base-v2")
+        color_print("Connected to Weaviate.")
         
     @staticmethod
     def connect() -> WeaviateClient:
