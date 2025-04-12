@@ -1,85 +1,115 @@
 import os
-import time
+import datetime
 import random
-from utils import color_print
+import shutil
 from dotenv import load_dotenv
-load_dotenv()
-
-from langchain_community.document_loaders import DirectoryLoader
+from langchain_core.documents import Document
 from ragas.llms import LangchainLLMWrapper
 from ragas.embeddings import LangchainEmbeddingsWrapper
 from langchain_openai import ChatOpenAI
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 from ragas.testset import TestsetGenerator
+from unstructured.partition.text import partition_text
+from utils import color_print
 
-DOCS_DIR = "/Users/adamvalik/Downloads/test-wiki"
-SPLITTED_DOCS_DIR = f"{DOCS_DIR}/split_files"
+NUM_ARTICLES = 60
+TESTSET_SIZE = 20
+SOURCE_FOLDER = "/Users/adamvalik/Downloads/test-wiki"
+TEMP_DOCS_DIR = "tests/temp_split_docs"
 
-def split_files(num_parts=20):
-    """generate_with_langchain_docs cannot take the whole wiki_XX.txt at once as input,
-    so I need to split it into smaller files first."""
-    os.makedirs(SPLITTED_DOCS_DIR, exist_ok=True)
+def create_document_testset():
+    # cleanup/create temp directory
+    if os.path.exists(TEMP_DOCS_DIR):
+        shutil.rmtree(TEMP_DOCS_DIR)
+    os.makedirs(TEMP_DOCS_DIR, exist_ok=True)
 
-    cnt = 0
-    for filename in os.listdir(DOCS_DIR):
-        file_path = os.path.join(DOCS_DIR, filename)
-        if not os.path.isfile(file_path):
-            continue
-        if not file_path.endswith(".txt"):
-            continue
-        with open(file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-        
-        total_lines = len(lines)
-        lines_per_part = total_lines // num_parts
-        remainder = total_lines % num_parts
-        
-        start = 0
-        for i in range(num_parts):
-            end = start + lines_per_part + (1 if i < remainder else 0)
-            part_lines = lines[start:end]
-            start = end
+    # load random file 
+    txt_files = [f for f in os.listdir(SOURCE_FOLDER) if f.endswith(".txt")]
+    file_path = os.path.join(SOURCE_FOLDER, random.choice(txt_files))
+
+    color_print(f"Using file: {file_path}", color="cyan")
+
+    elements = partition_text(filename=file_path)
+
+    # group elements for each title to create separate articles
+    articles = []
+    current_article = None
+    for el in elements:
+        if el.category == "Title":
+            if current_article is not None:
+                articles.append(current_article)
+            current_article = el.text + "\n\n"   
+        else:
+            current_article += el.text + "\n\n"
+
+    # select random articles
+    selected_articles = random.sample(articles, NUM_ARTICLES)
+    selected_articles = [article for article in selected_articles if len(article) > 400]
+
+    for i, article in enumerate(selected_articles):
+        with open(os.path.join(TEMP_DOCS_DIR, f"article_{i}.txt"), "w") as out_file:
+            out_file.write(article)
             
-            output_file = os.path.join(SPLITTED_DOCS_DIR, f"part_{cnt}.txt")
-            cnt += 1
-            with open(output_file, 'w', encoding='utf-8') as out_f:
-                out_f.writelines(part_lines)
+def load_documents_from_folder(folder_path, merge_batch_size=3):
+    documents = []
+    for filename in os.listdir(folder_path):
+        if not filename.endswith(".txt"):
+            continue
+        full_path = os.path.join(folder_path, filename)
+        with open(full_path, "r") as f:
+            lines = f.readlines()
 
-split_files()
-loader = DirectoryLoader(SPLITTED_DOCS_DIR)
-docs = loader.load()
-
-generator_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini"))
-generator_embeddings = LangchainEmbeddingsWrapper(HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2"))
-generator = TestsetGenerator(llm=generator_llm, embedding_model=generator_embeddings)
+        title = lines[0].strip()
+        content = "".join(lines).strip()
+                
+        doc = Document(
+            page_content=content,
+            metadata={
+                "title": title,
+                "headlines": [title]
+            }
+        )
+        documents.append(doc)
     
-testset_size = 20
+    merged_docs = []
+    for i in range(0, len(documents), merge_batch_size):
+        group = documents[i:i+merge_batch_size]
+        merged_content = "\n\n".join([doc.page_content for doc in group])
+        merged_titles = " + ".join([doc.metadata["title"] for doc in group])
 
-# batch_size = len(docs) // num_batches
-# for i in range(num_batches):
-#     print(f"Processing batch {i+1}...")
-#     start_idx = i * batch_size
-#     end_idx = (i + 1) * batch_size if i < num_batches - 1 else len(docs)
-#     docs_batch = docs[start_idx:end_idx]
-#     dataset = generator.generate_with_langchain_docs(docs_batch, testset_size=5)
-#     dataset.to_jsonl(f"tests/test-sets/testset-test-wiki-{i}.jsonl")
-#     dataset.upload()
-#     time.sleep(60)  # wait for the API to cool down
+        merged_doc = Document(
+            page_content=merged_content,
+            metadata={
+                "title": f"Combined: {merged_titles}",
+                "headlines": [doc.metadata["title"] for doc in group]
+            }
+        )
+        merged_docs.append(merged_doc)
+
+    return merged_docs
     
-# # merge testsets
-# with open("testset-test-wiki.jsonl", 'w', encoding='utf-8') as outfile:
-#     for file in os.listdir("tests/test-sets"):
-#         if file.startswith("testset-test-wiki-") and file.endswith(".jsonl"):
-#             with open(file, 'r', encoding='utf-8') as infile:
-#                 for line in infile:
-#                     outfile.write(line)
+def generate_testset():
+    load_dotenv()
+    
+    # load documents
+    docs = load_documents_from_folder(TEMP_DOCS_DIR)
 
+    generator_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini"))
+    generator_embeddings = LangchainEmbeddingsWrapper(
+        HuggingFaceEmbeddings(model_name="sentence-transformers/all-mpnet-base-v2")
+    )
+    generator = TestsetGenerator(llm=generator_llm, embedding_model=generator_embeddings)
 
-dataset = generator.generate_with_langchain_docs(random.sample(docs, testset_size), testset_size=testset_size)
-dataset.to_jsonl(f"tests/test-sets/testset-test-wiki.jsonl")
-dataset.upload()
+    dataset = generator.generate_with_langchain_docs(docs, testset_size=TESTSET_SIZE)
+    
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_path = f"tests/test-sets/testset_{timestamp}.jsonl"
+    dataset.to_jsonl(output_path)
+    dataset.upload()
 
-                    
-color_print("-"*50, color="yellow")
-color_print(f"Testset generation complete!")
-
+    color_print("-" * 50, color="yellow")
+    color_print("Testset generation complete!", color="green")
+    
+if __name__ == "__main__":
+    create_document_testset()
+    generate_testset()

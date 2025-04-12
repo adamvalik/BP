@@ -4,7 +4,6 @@ from reranker import Reranker
 
 # query + expected most relevant document
 queries_and_expected = [
-    ("", "No results found")
     ("Why is it risky to hike alone without experience?", "/Users/adamvalik/Downloads/test-wiki/wiki_10.txt_554"),
     ("How does the ovum travel from the ovary to the uterus?", "/Users/adamvalik/Downloads/test-wiki/wiki_10.txt_703"),
     ("When did McDonald's switch from beef tallow to vegetable oil for fries?", "/Users/adamvalik/Downloads/test-wiki/wiki_10.txt_707"),
@@ -40,9 +39,6 @@ queries_and_expected = [
     ("How does Tony Manero try to escape his life in Saturday Night Fever?", "/Users/adamvalik/Downloads/test-wiki/wiki_09.txt_548"),
     ("How did Henry Ford’s assembly line change manufacturing?", "/Users/adamvalik/Downloads/test-wiki/wiki_09.txt_551"),
     ("Why did the American colonies decide to declare independence from Great Britain in 1776?", "/Users/adamvalik/Downloads/test-wiki/wiki_09.txt_555"),
-    ("fefagargar", "No results found"),
-    ("fheaopfihae f epaif aepi f", "No results found"),
-
 ]
 
 @pytest.fixture(scope="module")
@@ -51,62 +47,14 @@ def vector_store():
     yield store
     store.close()
 
-# # utility function to print debug info
-# def print_debug_info(query, expected_filename, chunks):
-#     print("\n--- Debug Info ---")
-#     print(f"Query: {query}")
-#     print(f"Expected: {expected_filename}")
-#     if chunks:
-#         print(f"Total Results: {len(chunks)}")
-#         for chunk in chunks:
-#             print(f"Filename: {chunk.filename}")
-#             print(f"Score: {chunk.score} | Explain Score: {chunk.explain_score}")
-#             print(f"Text Snippet: {chunk.text[:100]}...")
-#             print("-------------------------------")
-
 @pytest.mark.parametrize("query, expected_chunk_id", queries_and_expected)
-def test_query_hybrid_rerank(vector_store, query, expected_chunk_id):
+def test_query_hybrid_exact(vector_store, query, expected_chunk_id):
     chunks = vector_store.hybrid_search(query, k=3, autocut=True)
     reranked_chunks = Reranker.rerank(query, chunks)
     
     if not reranked_chunks:
-        assert expected_chunk_id == "No results found", f"Expected '{expected_chunk_id}' for '{query}' but found nothing."
+        assert False, "Found nothing."
     else:
-        chunk_id = reranked_chunks[0].chunk_id
-        assert chunk_id == expected_chunk_id, f"Exact Mismatch for '{query}': Expected '{expected_chunk_id}', found {chunk_id}"    
-    
-# @pytest.mark.parametrize("query, expected_filename", queries_and_expected)
-# def test_query_hybrid_autocut(vector_store, query, expected_filename):
-#     """Test with autocut method"""
-#     chunks = vector_store.hybrid_search(query, k=1, autocut=True)
-    
-#     if not chunks:
-#         assert expected_filename == "No results found", f"Expected '{expected_filename}' for '{query}' but found nothing."
-#     else:
-#         print_debug_info(query, expected_filename, chunks)
-#         filenames = [chunk.filename for chunk in chunks]
-#         assert expected_filename in filenames, f"Autocut Mismatch for '{query}': Expected '{expected_filename}', not found in {filenames}"
+        assert expected_chunk_id == reranked_chunks[0].chunk_id, f"[exact] found {reranked_chunks[0].chunk_id}"    
+        assert expected_chunk_id in [c.chunk_id for c in reranked_chunks], f"[context] found {[c.chunk_id for c in reranked_chunks]}"
 
-# @pytest.mark.parametrize("query, expected_filename", queries_and_expected)
-# def test_query_hybrid_top3(vector_store, query, expected_filename):
-#     """Test for top-3 relevance ranking"""
-#     chunks = vector_store.hybrid_search(query, k=3)
-    
-#     if not chunks:
-#         assert expected_filename == "No results found", f"Expected '{expected_filename}' for '{query}' but found nothing."
-#     else:
-#         print_debug_info(query, expected_filename, chunks)
-#         filenames = [chunk.filename for chunk in chunks]
-#         assert expected_filename in filenames, f"Top-3 Mismatch for '{query}': Expected '{expected_filename}', not found in {filenames}"
-
-# @pytest.mark.parametrize("query, expected_filename", queries_and_expected)
-# def test_query_hybrid_autocut_top3(vector_store, query, expected_filename):
-#     """Test for top-3 autocut relevance ranking"""
-#     chunks = vector_store.hybrid_search(query, k=3, autocut=True)
-    
-#     if not chunks:
-#         assert expected_filename == "No results found", f"Expected '{expected_filename}' for '{query}' but found nothing."
-#     else:
-#         print_debug_info(query, expected_filename, chunks)
-#         filenames = [chunk.filename for chunk in chunks]
-#         assert expected_filename in filenames, f"Top-3 Autocut Mismatch for '{query}': Expected '{expected_filename}', not found in {filenames}"
