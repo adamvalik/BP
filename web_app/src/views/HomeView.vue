@@ -100,7 +100,12 @@
               <span class="font-bold">File:</span> {{ chunk.filename }}<br>
               <span class="font-bold">Score:</span> {{ chunk.score.toFixed(3) }} ({{ chunk.explain_score }})<br>
               <span class="font-bold">Reranked Score:</span> {{ chunk.reranked_score.toFixed(3) }}<br>
-              <span class="font-bold">Title:</span> {{ chunk.title }}<br>
+              <template v-if="chunk.title">
+                <span class="font-bold">Title:</span> {{ chunk.title }}<br>
+              </template>
+              <template v-if="chunk.page">
+                <span class="font-bold">Page:</span> {{ chunk.page }}<br>
+              </template>
               <span class="font-bold">Text:</span> {{ chunk.text }}
             </li>
           </ul>

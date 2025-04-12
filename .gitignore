@@ -1,6 +1,7 @@
 .vscode/
 .DS_Store
 venv/
+.python-version
 __pycache__/
 .pytest_cache/
 .benchmarks/
@@ -12,11 +13,11 @@ credentials.json
 root_url.json
 page_token.json
 
+
 # datasets
-rag/downloads/
-rag/txt-dataset
-rag/txt-dataset-2
 rag/tests/test-files/
+rag/tests/temp_split_docs
+
 
 # persistent storage
 weaviate_data/

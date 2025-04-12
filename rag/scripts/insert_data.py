@@ -11,7 +11,7 @@ load_dotenv()
 # "/Users/adamvalik/Downloads/txt-dataset-1"
 # "/Users/adamvalik/Downloads/txt-dataset-2"
 
-dataset_folder = "/Users/adamvalik/Downloads/samples"
+dataset_folder = "/Users/adamvalik/Downloads/test-wiki"
 
 def add_documents(folder_path):
     color_print(f"\nIngesting documents from directory: {folder_path}", color="blue")
@@ -25,7 +25,7 @@ def add_documents(folder_path):
             else:
                 document_processor = DocumentProcessor(filename=file_path)
                 document_processor.add_rights("user")
-                chunks = document_processor.process(verbose=True)
+                chunks = document_processor.process()
                 if chunks:
                     buffer.extend(chunks)
                     color_print(f"Document {file_path} processed.")

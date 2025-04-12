@@ -83,8 +83,8 @@ class DocumentProcessor():
             return
         
         for i, el in enumerate(self.elements):
-            el.text = emoji.replace_emoji(el.text, "") # remove emojis
-            el.text = clean(el.text, extra_whitespace=True, dashes=True, bullets=True)
+            # el.text = emoji.replace_emoji(el.text, "") # remove emojis
+            # el.text = clean(el.text, extra_whitespace=True, dashes=True, bullets=True)
             
             if add_titles:
                 # add the titles if not partitioned well
@@ -205,7 +205,7 @@ class DocumentProcessor():
             return
 
         if output_file:
-            with open(output_file, "w") as f:
+            with open(output_file, "a") as f:
                 f.write(f"File: {self.filename}\n")
                 
                 if elements:
@@ -240,13 +240,13 @@ class DocumentProcessor():
                     print("-"*50)
                 color_print(f"Chunked {len(self.chunks)} chunks from {len(self.elements)} elements")
                 
-    def process(self, verbose: bool = False, ) -> List[Chunk]:
+    def process(self, verbose: bool = False) -> List[Chunk]:
         # processing pipeline
         self.partition_elements()
-        self.clean_elements(remove_titles=True, remove_list_of_titles=True)
+        self.clean_elements(add_titles=True, remove_titles=True, remove_list_of_titles=True)
         self.chunk_elements()
 
         if verbose: 
-            self.log(elements=True, output_file="chunking.log")
+            self.log(elements=False, output_file="chunking.log")
 
         return self.chunks
