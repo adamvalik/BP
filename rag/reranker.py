@@ -16,23 +16,13 @@ class Reranker:
         reranked_chunks = []
         for rerank in reranks:
             chunk = candidate_chunks[rerank['corpus_id']]
-            chunk.reranked_score = float(rerank['score']) #TypeError: Object of type float32 is not JSON serializable
+            chunk.reranked_score = float(rerank['score'])
             reranked_chunks.append(chunk)
-
-        # def normalize(values):
-        #     return [(x - min(values)) / (max(values) - min(values)) if max(values) != min(values) else 1.0 for x in values]
-                
-        # # normalize the scores
-        # scores = [chunk.reranked_score for chunk in reranked_chunks]
-        # normalized_scores = normalize(scores)
-        # for i, chunk in enumerate(reranked_chunks):
-        #     chunk.reranked_score = normalized_scores[i]
         
-        # filter out chunks that are not relevant
-        # max_score = max(chunk.reranked_score for chunk in reranked_chunks)
-        # reranked_chunks = [chunk for chunk in reranked_chunks if chunk.reranked_score >= 0.2 * max_score]
-        
-        return Reranker.filter_by_relative_score(reranked_chunks, cutoff)
+        # filter out the chunks with low reranked scores
+        if cutoff > 0:
+            reranked_chunks = Reranker.filter_by_relative_score(reranked_chunks, cutoff)
+        return reranked_chunks
     
     @staticmethod
     def filter_by_relative_score(chunks: List[Chunk], cutoff: float) -> List[Chunk]:
@@ -54,9 +44,9 @@ if __name__ == "__main__":
     from vector_store import VectorStore
     from utils import color_print
 
-    query = "What virus causes chickenpox and shingles"
+    query = "tips on running marathon"
     vector_store = VectorStore()
-    chunks = vector_store.hybrid_search(query, autocut=True, k=2) 
+    chunks = vector_store.hybrid_search(query, autocut=True, k=3) 
     vector_store.close()
         
     color_print(f"Hybrid search returned {len(chunks)} chunks.")
@@ -64,7 +54,7 @@ if __name__ == "__main__":
         print(f"{i}. score: {chunk.score:.2f} - {chunk.chunk_id}")
         
     color_print("-"*50, color="yellow")
-    reranked_chunks = Reranker.rerank(query, chunks)
+    reranked_chunks = Reranker.rerank(query, chunks, cutoff=0.5)
     color_print("Reranked chunks:")
         
     for i, chunk in enumerate(reranked_chunks):

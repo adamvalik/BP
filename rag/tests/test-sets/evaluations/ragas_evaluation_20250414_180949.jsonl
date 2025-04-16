@@ -1,0 +1,4 @@
+{"TESTSET": "tests/test-sets/ragas_single_hop.jsonl", "REWRITING": false, "ALPHA": 0.5, "AUTOCUT": true, "TOP_K": 1, "RERANKING": false, "RERANKER_CUTOFF": 0.5, "MODEL": "gpt-4o", "TEMPERATURE": 0.2, "average_input_tokens": 1091.02}
+{"llm_context_precision_without_reference": 0.8281111110503295, "context_recall": 0.7816666666666666, "noise_sensitivity(mode=irrelevant)": 0.06600267379679144, "answer_relevancy": 0.8094980113543018, "faithfulness": 0.8229868856633561, "factual_correctness(mode=f1)": 0.47840000000000005}
+{"avg_tokens": 1091.02}
+{"link": "https://app.ragas.io/dashboard/alignment/evaluation/78c4f16e-ab08-4c62-aa9c-b980daf2631f"}

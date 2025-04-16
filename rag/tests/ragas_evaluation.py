@@ -25,13 +25,20 @@ from ragas.metrics import (
 )
 
 # parameters
-TESTSET = "tests/test-sets/ragas_single_hop.jsonl"
-REWRITING = False
+TESTSET = "tests/test-sets/ragas_multi_hop.jsonl"
+REWRITING = True
 ALPHA = 0.5
 AUTOCUT = True
-TOP_K = 1
-RERANKING = False
+TOP_K = 3
+RERANKING = True
 RERANKER_CUTOFF = 0.5
+MODEL = "gpt-4o"
+TEMPERATURE = 0.2
+EMBEDDING = "sentence-transformers/all-mpnet-base-v2"
+CHUNK_SIZE_LIMIT = 374
+OVERLAP = "1 sentence"
+
+num_tokens = []
 
 def generate_responses() -> str:
     # load the testset and connect to Weaviate
@@ -52,7 +59,7 @@ def generate_responses() -> str:
     for sample in tqdm(testset, desc="Generating responses", unit="test"):
         query = sample["user_input"]
         reference = sample["reference"]
-        # reference_contexts = sample["reference_contexts"]
+        reference_contexts = sample["reference_contexts"]
 
         search_query = query
         if REWRITING:
@@ -64,12 +71,13 @@ def generate_responses() -> str:
             chunks = Reranker.rerank(search_query, chunks, cutoff=RERANKER_CUTOFF)
 
         contexts = [chunk.text for chunk in chunks]
-        response = llm_wrapper.get_response(query, chunks)
+        response, input_tokens = llm_wrapper.get_response(query=query, chunks=chunks, model=MODEL, temperature=TEMPERATURE)
+        num_tokens.append(input_tokens)
 
         dataset.append({
             "user_input": query,
             "retrieved_contexts": contexts,
-            # "reference_contexts": reference_contexts,
+            "reference_contexts": reference_contexts,
             "response": response,
             "reference": reference
         })
@@ -87,17 +95,23 @@ def generate_responses() -> str:
             "TOP_K": TOP_K,
             "RERANKING": RERANKING,
             "RERANKER_CUTOFF": RERANKER_CUTOFF,
+            "MODEL": MODEL,
+            "TEMPERATURE": TEMPERATURE,
+            "EMBEDDING": EMBEDDING,
+            "CHUNK_SIZE_LIMIT": CHUNK_SIZE_LIMIT,
+            "OVERLAP": OVERLAP,
+            "average_input_tokens": sum(num_tokens) / len(num_tokens) if num_tokens else 0,
         }
     }
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     
     if "single_hop" in TESTSET:
-        output_path = f"tests/test-sets/ragas_single_hop_results_{timestamp}.jsonl"
+        output_path = f"tests/test-sets/results/ragas_single_hop_results_{timestamp}.jsonl"
     elif "multi_hop" in TESTSET:
-        output_path = f"tests/test-sets/ragas_multi_hop_results_{timestamp}.jsonl"
+        output_path = f"tests/test-sets/results/ragas_multi_hop_results_{timestamp}.jsonl"
     else:
-        output_path = f"tests/test-sets/ragas_results_{timestamp}.jsonl"
+        output_path = f"tests/test-sets/results/ragas_results_{timestamp}.jsonl"
     
     with open(output_path, "w") as f:
         f.write(json.dumps(metadata_line) + "\n")
@@ -105,14 +119,14 @@ def generate_responses() -> str:
             f.write(json.dumps(item) + "\n")
             
     return output_path
-            
+
 def evaluation(dataset_name: str):
     # load the dataset to evaluate
     dataset = []        
     with open(dataset_name, "r") as f:
         dataset = [json.loads(line) for line in f]
 
-    # remove the first line (metadata) and create the evaluation dataset
+    # remove the first (and last) and create the evaluation dataset
     evaluation_dataset = EvaluationDataset.from_list(dataset[1:])
     evaluator_llm = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini"))
 
@@ -125,19 +139,22 @@ def evaluation(dataset_name: str):
             ResponseRelevancy(),                    # je odpoved relevantni dotazu? - answer is helpful
             Faithfulness(),                         # vychazi odpoved z kontextu? - no hallucination
             FactualCorrectness(),                   # je odpoved fakticky spravna? - answer is correct
+            # FactualCorrectness(mode="precision"),
+            # FactualCorrectness(mode="recall")
         ],
         llm=evaluator_llm
     )
 
-    color_print("-" * 50, color="yellow")
-    result.upload()
-
     df = result.to_pandas()
     average_metrics = df.select_dtypes(include=['number']).mean()
+    if num_tokens:
+        average_input_tokens = sum(num_tokens) / len(num_tokens)
 
     color_print("-" * 50, color="yellow")
     color_print("Evaluation statistics:")
     print(average_metrics)
+    if num_tokens:
+        print(f"Average number of input tokens: {average_input_tokens:.2f}")
     color_print("-" * 50, color="yellow")
     
     # read the __metadata__ line from the dataset
@@ -145,17 +162,26 @@ def evaluation(dataset_name: str):
     
     # save the results
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_path = f"tests/results/ragas_evaluation_{timestamp}.jsonl" 
+    output_path = f"tests/test-sets/evaluations/ragas_evaluation_{timestamp}.jsonl" 
     with open(output_path, "w") as f:
         f.write(json.dumps(metadata_line) + "\n")
         f.write(json.dumps(average_metrics.to_dict()) + "\n")
+        if num_tokens:
+            f.write(json.dumps({"avg_tokens": average_input_tokens}) + "\n")
+            
+    result.upload()
+    color_print("-" * 50, color="yellow")
+
 
 if __name__ == "__main__":
     load_dotenv()
     
+    import time
+    
+    start_time = time.perf_counter()
     color_print("Starting RAGAS evaluation...", color="yellow")
     dataset = generate_responses()
     evaluation(dataset_name=dataset)
-    color_print("Evaluation complete!", color="green")
-    
-    # 1 běh 50 testu 6 metrik ~0.5 usd 
+    # evaluation(dataset_name="tests/test-sets/results/ragas_single_hop_results_20250414_180225.jsonl")
+    end_time = time.perf_counter()
+    color_print(f"Evaluation complete. Total time: {end_time - start_time:.2f} seconds")

@@ -8,7 +8,7 @@ __pycache__/
 node_modules/
 dist/
 .env
-.log
+*.log
 credentials.json
 root_url.json
 page_token.json

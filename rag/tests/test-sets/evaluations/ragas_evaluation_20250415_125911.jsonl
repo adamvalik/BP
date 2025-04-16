@@ -1,0 +1,2 @@
+{"TESTSET": "tests/test-sets/ragas_single_hop.jsonl", "REWRITING": false, "ALPHA": 0.5, "AUTOCUT": true, "TOP_K": 3, "RERANKING": true, "RERANKER_CUTOFF": 0.3, "MODEL": "gpt-4o", "TEMPERATURE": 0.2, "average_input_tokens": 2331.1}
+{"llm_context_precision_without_reference": 0.8549994047199186, "context_recall": 0.890625, "noise_sensitivity(mode=irrelevant)": 0.0833610188261351, "answer_relevancy": 0.8893483088324124, "faithfulness": 0.9095581132815177, "factual_correctness(mode=f1)": 0.5598000000000001}

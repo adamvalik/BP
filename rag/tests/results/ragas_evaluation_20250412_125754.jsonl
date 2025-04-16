@@ -1,3 +1,0 @@
-{"TESTSET": "tests/test-sets/ragas_single_hop.jsonl", "REWRITING": false, "ALPHA": 0.5, "AUTOCUT": true, "TOP_K": 1, "RERANKING": false, "RERANKER_CUTOFF": 0.5}
-{"llm_context_precision_without_reference": 0.8130833332751228, "context_recall": 0.775, "noise_sensitivity(mode=irrelevant)": 0.07063025210084034, "answer_relevancy": 0.8171199901168243, "faithfulness": 0.8103412698412698, "factual_correctness(mode=f1)": 0.5024000000000001}
-{"link": "https://app.ragas.io/dashboard/alignment/evaluation/9f6cae4d-822a-478b-ba67-c2fb4fd3f548"}

@@ -1,4 +1,5 @@
 import openai
+import tiktoken
 import os
 from chunk import Chunk
 from typing import List
@@ -60,7 +61,7 @@ class LLMWrapper:
             for response in self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages,
-                max_tokens=500,
+                # max_tokens=500,
                 temperature=0.2,
                 stream=True
             ):
@@ -70,18 +71,24 @@ class LLMWrapper:
         except openai.APIStatusError as e:
             yield f"[ERROR] OpenAI API Error: {e.status_code} - {e.response}"
             
-    def get_response(self, query: str, chunks: List[Chunk]):
+    def get_response(self, query: str, chunks: List[Chunk], model: str = "gpt-4o", temperature: float = 0.2):
         messages = LLMWrapper.construct_messages(query, chunks)
+        
+        if model == "gpt-4.1":
+            enc = tiktoken.get_encoding("o200k_base")
+        else:
+            enc = tiktoken.encoding_for_model(model)
+        num_tokens = len(enc.encode(messages[0]["content"])) + len(enc.encode(messages[1]["content"]))
         
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model=model,
                 messages=messages,
-                max_tokens=500,
-                temperature=0.2,
+                # max_tokens=500,
+                temperature=temperature,
             )
             
-            return response.choices[0].message.content
+            return response.choices[0].message.content, num_tokens
         
         except openai.APIStatusError as e:
             return f"[ERROR] OpenAI API Error: {e.status_code} - {e.response}"

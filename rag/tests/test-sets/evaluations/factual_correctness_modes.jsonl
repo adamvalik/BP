@@ -1,0 +1,3 @@
+{"TESTSET": "tests/test-sets/ragas_single_hop.jsonl", "REWRITING": false, "ALPHA": 0.5, "AUTOCUT": true, "TOP_K": 1, "RERANKING": false, "RERANKER_CUTOFF": 0.5, "MODEL": "gpt-4o", "TEMPERATURE": 0.2, "average_input_tokens": 1091.02}
+{"factual_correctness(mode=f1)": 0.49579999999999996, "factual_correctness(mode=precision)": 0.4795999999999999, "factual_correctness(mode=recall)": 0.5923999999999999}
+{"link": "https://app.ragas.io/dashboard/alignment/evaluation/71603e71-5c24-4ad2-b0ce-f56a9f2f1758"}

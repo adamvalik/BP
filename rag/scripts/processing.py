@@ -20,7 +20,7 @@ for i, file_name in tqdm(enumerate(files), total=len(files)):
         file_path = os.path.join(TEST_FOLDER, file_name)
         if os.path.isfile(file_path):
             document_processor = DocumentProcessor(filename=file_path)
-            chunks = document_processor.process(verbose=False)
+            chunks = document_processor.process(verbose=True)
             num_chunks.append(len(chunks))
         elif os.path.isdir(file_path):
             print(f"Skipping directory: {file_path}")
