@@ -27,7 +27,7 @@ from ragas.metrics import (
 # parameters
 TESTSET = "tests/test-sets/ragas_multi_hop.jsonl"
 REWRITING = True
-ALPHA = 0.5
+ALPHA = 0.55
 AUTOCUT = True
 TOP_K = 3
 RERANKING = True
@@ -169,7 +169,7 @@ def evaluation(dataset_name: str):
         if num_tokens:
             f.write(json.dumps({"avg_tokens": average_input_tokens}) + "\n")
             
-    result.upload()
+    # result.upload()
     color_print("-" * 50, color="yellow")
 
 
@@ -182,6 +182,6 @@ if __name__ == "__main__":
     color_print("Starting RAGAS evaluation...", color="yellow")
     dataset = generate_responses()
     evaluation(dataset_name=dataset)
-    # evaluation(dataset_name="tests/test-sets/results/ragas_single_hop_results_20250414_180225.jsonl")
+    # evaluation(dataset_name="tests/test-sets/results/ragas_single_hop_results_20250421_102619.jsonl")
     end_time = time.perf_counter()
     color_print(f"Evaluation complete. Total time: {end_time - start_time:.2f} seconds")

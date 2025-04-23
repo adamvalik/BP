@@ -21,7 +21,8 @@ def get_response_for_query(query: str):
     reranked_chunks = Reranker.rerank(query, chunks)
     
     llm_wrapper = LLMWrapper()
-    return llm_wrapper.get_response(query, reranked_chunks)
+    response, _ = llm_wrapper.get_response(query, reranked_chunks)
+    return response
 
 
 if __name__ == "__main__":

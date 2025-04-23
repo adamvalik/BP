@@ -144,7 +144,7 @@ class VectorStore():
         
         return filenames    
         
-    def hybrid_search(self, query: str, rights: str = None, k: int = 5, alpha: float = 0.5, autocut: bool = False) -> List[Chunk]:
+    def hybrid_search(self, query: str, rights: str = None, k: int = 5, alpha: float = 0.55, autocut: bool = False) -> List[Chunk]:
         assert 0 <= alpha <= 1, "Alpha must be between 0 and 1."
         
         embedding = self.embedding_model.embed(query)[0]

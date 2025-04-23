@@ -1,5 +1,5 @@
 # development server with hot-reloading
-FROM node:22
+FROM node:23-slim
 
 WORKDIR /app
 

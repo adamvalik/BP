@@ -22,6 +22,9 @@ import nltk
 #     nltk.download('punkt')
 
 class DocumentProcessor():
+    # chunking based on titles and number of tokens
+    # respecting the token limit of the embedding model
+    MAX_TOKENS = 384 - 10 # limit with safety margin
     
     def __init__(self, filename: str, file: Optional[bytes] = None, file_id: Optional[str] = None):
         '''filename is full target file path or just a name of the file if bytes are specified'''
@@ -43,7 +46,7 @@ class DocumentProcessor():
 
         try:
             if self.file:
-                # --- IN-MEMORY PARTITION ---
+                # in-memory partition
                 file_stream = io.BytesIO(self.file)
                 
                 if self.ext == "txt":
@@ -58,7 +61,7 @@ class DocumentProcessor():
                     self.elements = partition_image(file=file_stream)
                 
             else:
-                # --- DISK-BASED PARTITION ---
+                # disk-based partition
                 if self.ext == "txt":
                     self.elements = partition_text(filename=self.filename)
                 elif self.ext == "pdf":
@@ -78,21 +81,24 @@ class DocumentProcessor():
             color_print(message="No elements found", color="red", additional_text=f" in {self.filename}, processing is skipped.")
             return
 
-    def clean_elements(self, add_titles: bool = False, remove_titles: bool = False, remove_list_of_titles: bool = False):
+    def clean_elements(
+        self, 
+        add_titles: bool = False, 
+        remove_titles: bool = False,
+        remove_list_of_titles: bool = False,
+        remove_formulas: bool = False
+    ):
         if not self.elements:
             return
         
-        for i, el in enumerate(self.elements):
-            # el.text = emoji.replace_emoji(el.text, "") # remove emojis
-            # el.text = clean(el.text, extra_whitespace=True, dashes=True, bullets=True)
-            
+        for i, el in enumerate(self.elements):            
             if add_titles:
                 # add the titles if not partitioned well
                 if el.category != "Title" and len(el.text) < 80 and not el.text.endswith((".", "\"")):
                     el.category = "Title"
             if remove_titles:
                 # remove the titles if they are not needed
-                if el.category == "Title" and len(el.text) < 80 and el.text.endswith((":")):
+                if el.category == "Title" and el.text.endswith((":", ".", ">")):
                     el.category = "NarrativeText"
             if remove_list_of_titles:
                 # title is followed by another title, categorize it as narrative text, it is likely a list of items
@@ -102,7 +108,14 @@ class DocumentProcessor():
                     while i < len(self.elements) and self.elements[j].category == "Title":
                         self.elements[j].category = "NarrativeText"
                         j += 1
-        
+            if remove_formulas:
+                # remove formulas as titles
+                if el.category == "Title" and el.text.split("_")[0] == "formula":
+                    el.category = "NarrativeText"
+
+        el.text = emoji.replace_emoji(el.text, "") # remove emojis
+        el.text = clean(el.text, extra_whitespace=True, dashes=True, bullets=True)        
+
         self.elements = [
             el for el in self.elements 
             if el.text.strip() and el.category not in ["Header", "Footer"]
@@ -112,9 +125,6 @@ class DocumentProcessor():
         if not self.elements:
             return
         
-        # chunking based on titles and number of tokens
-        # respecting the token limit of the embedding model
-        max_tokens = 384 - 10 # limit with safety margin
         tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-mpnet-base-v2")
         
         curr_chunk_text = ""
@@ -169,7 +179,7 @@ class DocumentProcessor():
                 sentence_token_count = len(tokenizer.tokenize(sentence))
                 
                 # if adding another sentence exceeds the token limit (or it's a new title), close the current chunk
-                if curr_token_count + sentence_token_count > max_tokens or el.category == "Title":
+                if curr_token_count + sentence_token_count > DocumentProcessor.MAX_TOKENS or el.category == "Title":
                     if curr_chunk_text.strip():
                         end_idx = i
                         start_idx = chunk_element_indices[0] if chunk_element_indices else end_idx
@@ -243,7 +253,7 @@ class DocumentProcessor():
     def process(self, verbose: bool = False) -> List[Chunk]:
         # processing pipeline
         self.partition_elements()
-        self.clean_elements(add_titles=True, remove_titles=True, remove_list_of_titles=True)
+        self.clean_elements(remove_titles=True, remove_formulas=True, remove_list_of_titles=True)
         self.chunk_elements()
 
         if verbose: 

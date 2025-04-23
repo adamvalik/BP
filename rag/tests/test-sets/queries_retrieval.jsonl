@@ -1,100 +1,100 @@
-{"query": "Why is it risky to hike alone without experience?", "expected_chunk_id": "wiki_10.txt_554"}
-{"query": "Why did Nikola Tesla gain a reputation as a 'mad scientist'?", "expected_chunk_id": "wiki_11.txt_434"}
-{"query": "What is the origin of the word 'spaghetti' and when was it first used?", "expected_chunk_id": "wiki_12.txt_257"}
-{"query": "How long does an emperor penguin chick stay on its parents' feet?", "expected_chunk_id": "wiki_12.txt_261"}
-{"query": "What did Hitler do while in prison after the Beer Hall Putsch?", "expected_chunk_id": "wiki_12.txt_272"}
-{"query": "When was Shakespeare's play 'Antony and Cleopatra' first performed?", "expected_chunk_id": "wiki_12.txt_279"}
-{"query": "What was Nickelodeon's original name when it started?", "expected_chunk_id": "wiki_05.txt_685"}
-{"query": "Why might breastfed babies need vitamin D supplements?", "expected_chunk_id": "wiki_02.txt_741"}
-{"query": "What is the role of bile in fat digestion?", "expected_chunk_id": "wiki_02.txt_742"}
-{"query": "What does the dental pulp contain?", "expected_chunk_id": "wiki_02.txt_743"}
-{"query": "Who first used the term 'protoplasm' and when?", "expected_chunk_id": "wiki_02.txt_744"}
-{"query": "Which countries in Latin America have Native American languages as official languages?", "expected_chunk_id": "wiki_05.txt_289"}
-{"query": "Why is modern Norwegian similar to Danish in writing?", "expected_chunk_id": "wiki_15.txt_205"}
-{"query": "What is the capital of French Polynesia?", "expected_chunk_id": "wiki_15.txt_207"}
-{"query": "Which historical figure founded the city of Osnabrück?", "expected_chunk_id": "wiki_15.txt_208"}
-{"query": "Who invented the first electronic flip flop and when?", "expected_chunk_id": "wiki_15.txt_209"}
-{"query": "What is a basic tool used in econometrics for analysis?", "expected_chunk_id": "wiki_15.txt_214"}
-{"query": "What is the role of a King of Arms?", "expected_chunk_id": "wiki_15.txt_216"}
-{"query": "What does psychokinesis refer to?", "expected_chunk_id": "wiki_15.txt_217"}
-{"query": "What is Penjing and how is it related to bonsai?", "expected_chunk_id": "wiki_15.txt_220"}
-{"query": "Which bands and artists has Brian Eno collaborated with?", "expected_chunk_id": "wiki_15.txt_221"}
-{"query": "What special ability does Kirby have in the video game series?", "expected_chunk_id": "wiki_15.txt_222"}
-{"query": "What is a capacitor and how does it store energy?", "expected_chunk_id": "wiki_15.txt_223"}
-{"query": "What is the main economic activity in Amarillo, Texas?", "expected_chunk_id": "wiki_15.txt_229"}
-{"query": "How large is Lansdowne, Pennsylvania in area?", "expected_chunk_id": "wiki_15.txt_230"}
-{"query": "Who is the manager of Gillingham F.C. and where do they play?", "expected_chunk_id": "wiki_15.txt_231"}
-{"query": "What is a musical round and how does it work?", "expected_chunk_id": "wiki_15.txt_232"}
-{"query": "What does the gallbladder do in the human body?", "expected_chunk_id": "wiki_15.txt_233"}
-{"query": "What distinguishes the United States Merchant Marine from other countries' merchant marines?", "expected_chunk_id": "wiki_06.txt_245"}
-{"query": "What is FreeBSD based on and what kind of computers can run it?", "expected_chunk_id": "wiki_06.txt_246"}
-{"query": "Which popular TV shows and movies was Garry Marshall involved in?", "expected_chunk_id": "wiki_06.txt_247"}
-{"query": "What Olympic achievements did Johnny Weissmuller have before becoming an actor?", "expected_chunk_id": "wiki_06.txt_248"}
-{"query": "What is Priscilla Presley known for besides being Elvis Presley's wife?", "expected_chunk_id": "wiki_06.txt_249"}
-{"query": "What are common symptoms and dangers of alcohol poisoning?", "expected_chunk_id": "wiki_06.txt_250"}
-{"query": "What types of beverages does Canada Dry produce?", "expected_chunk_id": "wiki_06.txt_252"}
-{"query": "How is ginger ale different from ginger beer?", "expected_chunk_id": "wiki_06.txt_253"}
-{"query": "What is shaving and how is it commonly practiced?", "expected_chunk_id": "wiki_06.txt_254"}
-{"query": "What is the origin of the word hygiene and what does it mean?", "expected_chunk_id": "wiki_06.txt_255"}
-{"query": "Why do some people dislike using sporks?", "expected_chunk_id": "wiki_06.txt_256"}
-{"query": "Under which brands has the Vauxhall Astra been sold since 1991?", "expected_chunk_id": "wiki_06.txt_257"}
-{"query": "When was the Ford Ka first produced and where?", "expected_chunk_id": "wiki_06.txt_258"}
-{"query": "How many bones are in the human hand, including the wrist?", "expected_chunk_id": "wiki_08.txt_338"}
-{"query": "What is the meaning of the name 'Bahrain' and what does it refer to?", "expected_chunk_id": "wiki_08.txt_339"}
-{"query": "Why are carp considered a problem in the U.S. and Australia?", "expected_chunk_id": "wiki_09.txt_877"}
-{"query": "What type of roles is Christopher Walken known for playing?", "expected_chunk_id": "wiki_09.txt_878"}
-{"query": "How did Gene Hackman start his acting career?", "expected_chunk_id": "wiki_09.txt_879"}
-{"query": "Who is Brian Russell married to?", "expected_chunk_id": "wiki_09.txt_880"}
-{"query": "What product is made from the liver of cod?", "expected_chunk_id": "wiki_09.txt_881"}
-{"query": "What is the nickname and motto of the U.S. 1st Infantry Division?", "expected_chunk_id": "wiki_10.txt_0"}
-{"query": "What crimes was Charles Manson responsible for?", "expected_chunk_id": "wiki_10.txt_1"}
-{"query": "What was Charles Manson's interpretation of the Beatles' 'White Album'?", "expected_chunk_id": "wiki_10.txt_5"}
-{"query": "What happened during the Manson Family's visit to Gary Hinman's house?", "expected_chunk_id": "wiki_10.txt_6"}
-{"query": "How did Charles Manson die and when?", "expected_chunk_id": "wiki_10.txt_7"}
-{"query": "Who founded the first monastery in Nottuln and when?", "expected_chunk_id": "wiki_10.txt_14"}
-{"query": "What is special about St. Pius Gymnasium in Coesfeld?", "expected_chunk_id": "wiki_10.txt_15"}
-{"query": "What is the main function of the cell membrane?", "expected_chunk_id": "wiki_10.txt_16"}
-{"query": "Which film is the only X-rated movie to win Best Picture at the Academy Awards?", "expected_chunk_id": "wiki_12.txt_46"}
-{"query": "How does the age of consent vary depending on authority or relationship?", "expected_chunk_id": "wiki_12.txt_51"}
-{"query": "What was Andy Richter's first sitcom after leaving 'Late Night'?", "expected_chunk_id": "wiki_12.txt_52"}
-{"query": "What position does Jennifer Granholm hold in the Biden administration?", "expected_chunk_id": "wiki_12.txt_53"}
-{"query": "Who was the first woman to serve on the U.S. Supreme Court?", "expected_chunk_id": "wiki_12.txt_54"}
-{"query": "Which major Supreme Court case did John Paul Stevens oppose the majority in?", "expected_chunk_id": "wiki_12.txt_55"}
-{"query": "What was Antonin Scalia's view on constitutional interpretation?", "expected_chunk_id": "wiki_12.txt_56"}
-{"query": "Which major Supreme Court decisions was Anthony Kennedy known for authoring?", "expected_chunk_id": "wiki_12.txt_58"}
-{"query": "Who nominated David Souter to the U.S. Supreme Court?", "expected_chunk_id": "wiki_12.txt_59"}
-{"query": "Who was the second African American to serve on the U.S. Supreme Court?", "expected_chunk_id": "wiki_12.txt_60"}
-{"query": "Why was Nagasaki the only port open to foreign trade during the Edo period?", "expected_chunk_id": "wiki_12.txt_71"}
-{"query": "Who founded the Ayyavazhi faith and where did it originate?", "expected_chunk_id": "wiki_12.txt_72"}
-{"query": "How did Cao Cao gain control over Emperor Xian and northern China?", "expected_chunk_id": "wiki_13.txt_589"}
-{"query": "Why was Zhang Fei killed by his own officers?", "expected_chunk_id": "wiki_13.txt_590"}
-{"query": "Why did Dong Zhuo replace Liu Bian with Liu Xie as emperor?", "expected_chunk_id": "wiki_13.txt_591"}
-{"query": "What does annexation mean in political terms?", "expected_chunk_id": "wiki_13.txt_610"}
-{"query": "Which provinces make up Manchuria and what historical events shaped its control?", "expected_chunk_id": "wiki_13.txt_611"}
-{"query": "What was Tuva's political status before and after 1944?", "expected_chunk_id": "wiki_13.txt_612"}
-{"query": "What is Tuvan throat singing and why is it unique?", "expected_chunk_id": "wiki_13.txt_613"}
-{"query": "Which countries dispute control over the Senkaku Islands?", "expected_chunk_id": "wiki_13.txt_614"}
-{"query": "What is the purpose of World Youth Day and who created it?", "expected_chunk_id": "wiki_13.txt_615"}
-{"query": "How did Carl XVI Gustaf become King of Sweden and what are his current powers?", "expected_chunk_id": "wiki_13.txt_616"}
-{"query": "What materials and architectural features characterize the Parthenon?", "expected_chunk_id": "wiki_14.txt_103"}
-{"query": "What does physical anthropology study about human evolution?", "expected_chunk_id": "wiki_14.txt_105"}
-{"query": "How do jackals typically hunt and live in the wild?", "expected_chunk_id": "wiki_14.txt_106"}
-{"query": "Where is Milwaukee located and what major sports teams are based there?", "expected_chunk_id": "wiki_14.txt_107"}
-{"query": "What kind of texts does the Marxists Internet Archive provide?", "expected_chunk_id": "wiki_14.txt_108"}
-{"query": "Which countries were the original members of NATO in 1949?", "expected_chunk_id": "wiki_14.txt_109"}
-{"query": "What limits does Nintendogs impose on the number of dogs a player can keep?", "expected_chunk_id": "wiki_14.txt_126"}
-{"query": "What programming language is phpBB written in?", "expected_chunk_id": "wiki_14.txt_152"}
-{"query": "When was the World Health Organization established?", "expected_chunk_id": "wiki_14.txt_153"}
-{"query": "How fast can jerboas run when chased?", "expected_chunk_id": "wiki_14.txt_154"}
-{"query": "Which fable features a tortoise racing a hare?", "expected_chunk_id": "wiki_14.txt_155"}
-{"query": "How many millilitres is a teaspoon?", "expected_chunk_id": "wiki_14.txt_159"}
-{"query": "Where is the village of Camembert located?", "expected_chunk_id": "wiki_14.txt_160"}
-{"query": "Which moulds are used to ripen Camembert cheese?", "expected_chunk_id": "wiki_14.txt_161"}
-{"query": "Which novel by Margaret Atwood won the Booker Prize in 2000?", "expected_chunk_id": "wiki_15.txt_890"}
-{"query": "What virus causes chickenpox and shingles?", "expected_chunk_id": "wiki_15.txt_891"}
-{"query": "What does it mean when music modulates?", "expected_chunk_id": "wiki_15.txt_892"}
-{"query": "What was J.J. Thomson's model of the atom called?", "expected_chunk_id": "wiki_15.txt_899"}
-{"query": "What experiment led Rutherford to propose the nuclear model of the atom?", "expected_chunk_id": "wiki_15.txt_900"}
-{"query": "Which force is not explained by the Standard Model?", "expected_chunk_id": "wiki_15.txt_901"}
-{"query": "Which composers are known for creating minimalist music?", "expected_chunk_id": "wiki_15.txt_907"}
-{"query": "How many Formula One races did Emilio de Villota participate in?", "expected_chunk_id": "wiki_15.txt_918"}
+{"query": "Which planet is the largest in the Solar System?", "expected_chunk_id": "wiki_01.txt_39"}
+{"query": "What is the political status of Taiwan according to China?", "expected_chunk_id": "wiki_01.txt_41"}
+{"query": "What are the different names for police organizations in various countries?", "expected_chunk_id": "wiki_01.txt_42"}
+{"query": "What distinguishes a proper noun from a common noun in English?", "expected_chunk_id": "wiki_01.txt_49"}
+{"query": "What are thermoplastics and how are they used in 3D printing?", "expected_chunk_id": "wiki_01.txt_50"}
+{"query": "What is the principle behind product stewardship and deposit bottles?", "expected_chunk_id": "wiki_01.txt_52"}
+{"query": "How does product stewardship relate to legal responsibility in the EU and US?", "expected_chunk_id": "wiki_01.txt_53"}
+{"query": "Which books and poems did Rudyard Kipling write?", "expected_chunk_id": "wiki_01.txt_68"}
+{"query": "What are examples of recreational activities?", "expected_chunk_id": "wiki_01.txt_69"}
+{"query": "What is the wavelength range of red light?", "expected_chunk_id": "wiki_01.txt_70"}
+{"query": "Why can eating raw food be risky?", "expected_chunk_id": "wiki_01.txt_71"}
+{"query": "When did the Roman Empire start and what marked its end?", "expected_chunk_id": "wiki_01.txt_72"}
+{"query": "What kind of trade and succession practices existed in the Roman Empire?", "expected_chunk_id": "wiki_01.txt_73"}
+{"query": "What method do scientists use to test theories?", "expected_chunk_id": "wiki_01.txt_127"}
+{"query": "What does the term 'soapbox' refer to?", "expected_chunk_id": "wiki_01.txt_128"}
+{"query": "Why do people disagree about the supernatural?", "expected_chunk_id": "wiki_01.txt_129"}
+{"query": "How is the word 'spirit' used in both religious and legal contexts?", "expected_chunk_id": "wiki_01.txt_130"}
+{"query": "What are the main parts of a seed?", "expected_chunk_id": "wiki_01.txt_131"}
+{"query": "How do seeds enable plants to reproduce away from water?", "expected_chunk_id": "wiki_01.txt_132"}
+{"query": "What are Gymnosperms and Angiosperms?", "expected_chunk_id": "wiki_01.txt_133"}
+{"query": "What are sails and how do they work on boats?", "expected_chunk_id": "wiki_01.txt_134"}
+{"query": "How do search engines rank web pages?", "expected_chunk_id": "wiki_01.txt_136"}
+{"query": "Why do Christians observe the Sabbath on different days?", "expected_chunk_id": "wiki_01.txt_139"}
+{"query": "What is the difference between descriptive and inferential statistics?", "expected_chunk_id": "wiki_01.txt_142"}
+{"query": "What are different meanings of value?", "expected_chunk_id": "wiki_01.txt_277"}
+{"query": "Who created Volapük and why did it lose popularity?", "expected_chunk_id": "wiki_01.txt_278"}
+{"query": "How does vocabulary size vary by age and education?", "expected_chunk_id": "wiki_01.txt_279"}
+{"query": "What are common sources of vegetable oil?", "expected_chunk_id": "wiki_01.txt_280"}
+{"query": "How do verbs function and change in English?", "expected_chunk_id": "wiki_01.txt_281"}
+{"query": "What are the different types of windows described?", "expected_chunk_id": "wiki_01.txt_312"}
+{"query": "How was Earth's water likely formed or delivered?", "expected_chunk_id": "wiki_01.txt_321"}
+{"query": "What is the difference between a want and a need?", "expected_chunk_id": "wiki_01.txt_322"}
+{"query": "What are the main spoken and written varieties of the Chinese language?", "expected_chunk_id": "wiki_01.txt_330"}
+{"query": "What do zoologists study and where can they work?", "expected_chunk_id": "wiki_01.txt_339"}
+{"query": "What are the properties and common uses of zinc?", "expected_chunk_id": "wiki_01.txt_340"}
+{"query": "What do zebra stripes look like and what purpose might they serve?", "expected_chunk_id": "wiki_01.txt_346"}
+{"query": "How do modern zoos contribute to animal conservation and education?", "expected_chunk_id": "wiki_01.txt_347"}
+{"query": "What is the shape of a widescreen television and when did digital TV become common?", "expected_chunk_id": "wiki_01.txt_421"}
+{"query": "What topics and subfields does sociology cover?", "expected_chunk_id": "wiki_01.txt_422"}
+{"query": "How are IP addresses assigned and used in networks?", "expected_chunk_id": "wiki_01.txt_431"}
+{"query": "Where is the North Pole and what makes it unique?", "expected_chunk_id": "wiki_01.txt_440"}
+{"query": "How do plural forms vary across languages?", "expected_chunk_id": "wiki_01.txt_441"}
+{"query": "Who was Alexander Gode and what language did he help create?", "expected_chunk_id": "wiki_01.txt_442"}
+{"query": "What areas are typically included in the geographic region called Oceania?", "expected_chunk_id": "wiki_01.txt_443"}
+{"query": "What are the general boundaries and size of the Southern Ocean?", "expected_chunk_id": "wiki_01.txt_444"}
+{"query": "Where is Catalan spoken and what are its linguistic roots?", "expected_chunk_id": "wiki_01.txt_445"}
+{"query": "What is a corset and how has pop music evolved over the decades?", "expected_chunk_id": "wiki_01.txt_446"}
+{"query": "How did record companies shape the development of pop music?", "expected_chunk_id": "wiki_01.txt_447"}
+{"query": "Why was AFC Wimbledon founded?", "expected_chunk_id": "wiki_02.txt_62"}
+{"query": "Why didn't the asteroid belt form into a planet?", "expected_chunk_id": "wiki_02.txt_63"}
+{"query": "What makes Essen an important city in Germany?", "expected_chunk_id": "wiki_02.txt_65"}
+{"query": "What are different types of gardening and where can they be done?", "expected_chunk_id": "wiki_02.txt_70"}
+{"query": "What did the English Bill of Rights 1689 do to Parliament?", "expected_chunk_id": "wiki_02.txt_74"}
+{"query": "How did Johan Huizinga describe the role of play in culture?", "expected_chunk_id": "wiki_02.txt_75"}
+{"query": "What is Nebraska known for and when did it become a state?", "expected_chunk_id": "wiki_02.txt_80"}
+{"query": "What are some ancient and modern methods to measure time?", "expected_chunk_id": "wiki_02.txt_81"}
+{"query": "How is force defined in physics and what units is it measured in?", "expected_chunk_id": "wiki_02.txt_82"}
+{"query": "How can you calculate weight using gravity?", "expected_chunk_id": "wiki_02.txt_83"}
+{"query": "What are the base units in the International System of Units (SI)?", "expected_chunk_id": "wiki_02.txt_86"}
+{"query": "Why is gold used in electronics and what are its unique properties?", "expected_chunk_id": "wiki_02.txt_104"}
+{"query": "What is a centenary and what does centennial mean?", "expected_chunk_id": "wiki_02.txt_105"}
+{"query": "What was the original definition of the kilogram and how has it changed?", "expected_chunk_id": "wiki_02.txt_106"}
+{"query": "What makes gas different from solids and liquids?", "expected_chunk_id": "wiki_02.txt_125"}
+{"query": "How have weapons evolved from ancient times to modern warfare?", "expected_chunk_id": "wiki_02.txt_132"}
+{"query": "What is the function of a fingerplate on a door?", "expected_chunk_id": "wiki_02.txt_137"}
+{"query": "What are floodlights used for?", "expected_chunk_id": "wiki_02.txt_138"}
+{"query": "How does a headrest help protect passengers?", "expected_chunk_id": "wiki_02.txt_139"}
+{"query": "What is the purpose of an inkpad and how is it used?", "expected_chunk_id": "wiki_02.txt_140"}
+{"query": "What was the denarius and how did its composition change over time?", "expected_chunk_id": "wiki_02.txt_347"}
+{"query": "What are the meanings of the word jackknife?", "expected_chunk_id": "wiki_02.txt_348"}
+{"query": "What is a luffa used for?", "expected_chunk_id": "wiki_02.txt_349"}
+{"query": "How did the design of kimono change over time?", "expected_chunk_id": "wiki_02.txt_350"}
+{"query": "How does culture vary between countries and within regions?", "expected_chunk_id": "wiki_02.txt_358"}
+{"query": "What are some benefits of keeping houseplants indoors?", "expected_chunk_id": "wiki_02.txt_360"}
+{"query": "What are some common uses of waxed paper?", "expected_chunk_id": "wiki_02.txt_361"}
+{"query": "What is the Japanese tea ceremony and what does it involve?", "expected_chunk_id": "wiki_02.txt_362"}
+{"query": "How are movies made and where can they be watched?", "expected_chunk_id": "wiki_02.txt_365"}
+{"query": "What is the goal of communism regarding class and ownership?", "expected_chunk_id": "wiki_03.txt_37"}
+{"query": "How is resurrection viewed in Christianity and ancient religions?", "expected_chunk_id": "wiki_03.txt_42"}
+{"query": "What is brass made of and what are its key properties?", "expected_chunk_id": "wiki_03.txt_121"}
+{"query": "What are different meanings and uses of the word 'body'?", "expected_chunk_id": "wiki_03.txt_122"}
+{"query": "What is an alloy and how is it different from pure metals?", "expected_chunk_id": "wiki_03.txt_123"}
+{"query": "Where did the Hindu–Arabic numeral system originate and how did it spread?", "expected_chunk_id": "wiki_03.txt_136"}
+{"query": "What defines a point in geometry?", "expected_chunk_id": "wiki_03.txt_137"}
+{"query": "What is the difference between a line and a curve in geometry?", "expected_chunk_id": "wiki_03.txt_138"}
+{"query": "How is a plane defined in mathematics and what are its properties?", "expected_chunk_id": "wiki_03.txt_139"}
+{"query": "What are the different meanings and contexts of anarchy?", "expected_chunk_id": "wiki_03.txt_256"}
+{"query": "What is DNA made of and how does it function in cells?", "expected_chunk_id": "wiki_03.txt_257"}
+{"query": "What does analysis mean and where does the word come from?", "expected_chunk_id": "wiki_03.txt_278"}
+{"query": "What is the difference between foolishness and stupidity?", "expected_chunk_id": "wiki_03.txt_279"}
+{"query": "What contributions did Aristotle make to philosophy and education?", "expected_chunk_id": "wiki_03.txt_280"}
+{"query": "Who was Matsuo Basho and what is he known for?", "expected_chunk_id": "wiki_03.txt_289"}
+{"query": "What is colonization and how is it depicted in science fiction?", "expected_chunk_id": "wiki_03.txt_291"}
+{"query": "What does a choreographer do and in what fields?", "expected_chunk_id": "wiki_03.txt_292"}
+{"query": "How does an electrical cell produce electricity?", "expected_chunk_id": "wiki_03.txt_293"}
+{"query": "What happens when an iron electrode is used in an electrical cell?", "expected_chunk_id": "wiki_03.txt_294"}
+{"query": "What were some key events in Ronald Reagan’s political career?", "expected_chunk_id": "wiki_03.txt_306"}
+{"query": "What are cytokines and how do they work in the immune system?", "expected_chunk_id": "wiki_03.txt_359"}
+{"query": "What historical and cultural facts are associated with Bristol?", "expected_chunk_id": "wiki_03.txt_360"}
+{"query": "What is the origin and development of the Hindi language?", "expected_chunk_id": "wiki_03.txt_392"}

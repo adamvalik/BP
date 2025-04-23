@@ -2,23 +2,28 @@ import json
 import csv
 from vector_store import VectorStore
 from reranker import Reranker
+from rewriter import Rewriter
 from tqdm import tqdm
 from utils import color_print
 
+from dotenv import load_dotenv
+load_dotenv()
+
 QUERY_FILE = "tests/test-sets/queries_retrieval.jsonl"
 OUTPUT_CSV = "retrieval_eval_results.csv"
-TOP_K = 1
-ALPHA = 0.5
-RERANKING = False
 AUTOCUT = True
+TOP_K = 3
+ALPHA = 0.55
+RERANKING = True
+RERANKER_CUTOFF = 0.5
+REWRITING = False
 
 with open(QUERY_FILE, "r", encoding="utf-8") as f:
     test_cases = [json.loads(line) for line in f]
 
-# for TOP_K in [1, 2]:
-#     for RERANKING in [False, True]:        
+vector_store = VectorStore()
 
-for ALPHA in [0.0, 0.25, 0.4, 0.5, 0.6, 0.75, 1.0]:
+for RERANKER_CUTOFF in [0.3, 0.5, 0.7]:
         results = []
         recall_at_1 = 0  # exact match
         recall_at_k = 0  # present in context 
@@ -26,15 +31,20 @@ for ALPHA in [0.0, 0.25, 0.4, 0.5, 0.6, 0.75, 1.0]:
         context_size = 0
         ranks = []
 
-        vector_store = VectorStore()
 
         for c in tqdm(test_cases, desc="Evaluating", unit="case"):
+        # for c in test_cases:
             query = c["query"]
             expected_id = c["expected_chunk_id"]
+            
+            search_query = query
+            if REWRITING:
+                search_query = Rewriter.rewrite(query)
 
-            chunks = vector_store.hybrid_search(query=query, k=TOP_K, alpha=ALPHA, autocut=AUTOCUT)
+            chunks = vector_store.hybrid_search(query=search_query, alpha=ALPHA, autocut=AUTOCUT, k=TOP_K)
+            
             if RERANKING:
-                chunks = Reranker.rerank(query, chunks)
+                chunks = Reranker.rerank(search_query, chunks, cutoff=RERANKER_CUTOFF)
 
             retrieved_ids = [c.chunk_id.split("/")[-1] for c in chunks]
             context_size += len(retrieved_ids)
@@ -57,26 +67,27 @@ for ALPHA in [0.0, 0.25, 0.4, 0.5, 0.6, 0.75, 1.0]:
                 "rank": rank
             })
 
-        vector_store.close()
-
         ranks = [r for r in ranks if r]
         avg_rank = sum(ranks) / len(ranks) if ranks else 0
         avg_context_size = context_size / total
         summary = {
-            "total": total,
+            # "total": total,
             "recall@1": recall_at_1 / total,
             "in context": recall_at_k / total,
-            "not found": total - recall_at_k,
+            # "not found": total - recall_at_k,
             "average_rank": avg_rank,
             "average_context_size": avg_context_size,
         }
 
         color_print("\n=== Retrieval Evaluation Summary ===")
-        color_print(f"Parameters: TOP_K={TOP_K}, ALPHA={ALPHA}, RERANKING={RERANKING}, AUTOCUT={AUTOCUT}", color="yellow")
+        color_print(f"Parameters: TOP_K={TOP_K}, ALPHA={ALPHA}, RERANKING={RERANKING}, CUTOFF={RERANKER_CUTOFF}, AUTOCUT={AUTOCUT}", color="yellow")
         for k, v in summary.items():
             color_print(f"{k}: {v}", color="yellow")
-            
-        color_print("====================================\n")
+
+
+vector_store.close()
+
+        # color_print("====================================\n")
 
         # with open(OUTPUT_CSV, "w", newline='', encoding="utf-8") as csvfile:
         #     fieldnames = ["query", "expected_chunk_id", "retrieved_ids", "rank"]
