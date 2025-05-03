@@ -9,21 +9,21 @@ from utils import color_print
 from dotenv import load_dotenv
 load_dotenv()
 
-QUERY_FILE = "tests/test-sets/queries_retrieval.jsonl"
+QUERY_FILE = "tests/test-sets/queries_retrieval_cursed.jsonl"
 OUTPUT_CSV = "retrieval_eval_results.csv"
 AUTOCUT = True
-TOP_K = 3
+TOP_K = 1
 ALPHA = 0.55
-RERANKING = True
+RERANKING = False
 RERANKER_CUTOFF = 0.5
-REWRITING = False
+REWRITING = True
 
 with open(QUERY_FILE, "r", encoding="utf-8") as f:
     test_cases = [json.loads(line) for line in f]
 
 vector_store = VectorStore()
 
-for RERANKER_CUTOFF in [0.3, 0.5, 0.7]:
+for REWRITING in [False, True]:
         results = []
         recall_at_1 = 0  # exact match
         recall_at_k = 0  # present in context 
@@ -80,7 +80,9 @@ for RERANKER_CUTOFF in [0.3, 0.5, 0.7]:
         }
 
         color_print("\n=== Retrieval Evaluation Summary ===")
-        color_print(f"Parameters: TOP_K={TOP_K}, ALPHA={ALPHA}, RERANKING={RERANKING}, CUTOFF={RERANKER_CUTOFF}, AUTOCUT={AUTOCUT}", color="yellow")
+        color_print(f"File: {QUERY_FILE}", color="yellow")
+        color_print(f"Rewriting: {REWRITING}", color="yellow")
+        # color_print(f"Parameters: TOP_K={TOP_K}, ALPHA={ALPHA}, RERANKING={RERANKING}, CUTOFF={RERANKER_CUTOFF}, AUTOCUT={AUTOCUT}", color="yellow")
         for k, v in summary.items():
             color_print(f"{k}: {v}", color="yellow")
 
