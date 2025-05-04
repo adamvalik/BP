@@ -1,8 +1,13 @@
-import openai
-import tiktoken
+# File: llm_wrapper.py - LLMWrapper module
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
 import os
 from chunk import Chunk
 from typing import List
+
+import openai
+import tiktoken
+
 
 class LLMWrapper:
     def __init__(self):
@@ -47,7 +52,6 @@ class LLMWrapper:
                 f"{citation}\n{chunk.text}\n\n"
             )
         
-        # print("Prompt:\n", dev_message)
         return [
             {"role": "developer", "content": dev_message},
             {"role": "user", "content": user_query}
@@ -61,7 +65,6 @@ class LLMWrapper:
             for response in self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages,
-                # max_tokens=500,
                 temperature=0.2,
                 stream=True
             ):
@@ -72,6 +75,7 @@ class LLMWrapper:
             yield f"[ERROR] OpenAI API Error: {e.status_code} - {e.response}"
             
     def get_response(self, query: str, chunks: List[Chunk], model: str = "gpt-4o", temperature: float = 0.2):
+        # used for evaluation
         messages = LLMWrapper.construct_messages(query, chunks)
         
         if model == "gpt-4.1":
@@ -79,12 +83,11 @@ class LLMWrapper:
         else:
             enc = tiktoken.encoding_for_model(model)
         num_tokens = len(enc.encode(messages[0]["content"])) + len(enc.encode(messages[1]["content"]))
-        
+
         try:
             response = self.client.chat.completions.create(
                 model=model,
                 messages=messages,
-                # max_tokens=500,
                 temperature=temperature,
             )
             
@@ -92,5 +95,3 @@ class LLMWrapper:
         
         except openai.APIStatusError as e:
             return f"[ERROR] OpenAI API Error: {e.status_code} - {e.response}"
-
-

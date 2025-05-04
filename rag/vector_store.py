@@ -1,27 +1,37 @@
-from weaviate import connect_to_local
-from weaviate.classes.query import MetadataQuery, Filter, HybridFusion
-from weaviate.classes.config import Property, DataType, Configure, VectorDistances
-from weaviate.classes.data import DataObject
-from weaviate.client import WeaviateClient
-from tqdm import tqdm
+# File: vector_store.py - VectorStore module 
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
+import os
+import re
 import time
 from chunk import Chunk
-from embedding_model import EmbeddingModelFactory
-from weaviate.exceptions import WeaviateConnectionError
-import os
-from chunk import Chunk
 from typing import List, Optional
+
+from tqdm import tqdm
+from rag.tests.ragas_evaluation import EMBEDDING
+from weaviate import connect_to_local
+from weaviate.classes.config import (Configure, DataType, Property,
+                                     VectorDistances)
+from weaviate.classes.data import DataObject
+from weaviate.classes.query import Filter, HybridFusion, MetadataQuery
+from weaviate.client import WeaviateClient
+from weaviate.exceptions import WeaviateConnectionError
+
+from embedding_model import EmbeddingModelFactory
 from utils import color_print
-import re
+
 
 class VectorStore():
+    EMBEDDING_MODEL_TYPE = "huggingface"
+    EMBEDDING_MODEL = "all-mpnet-base-v2"
+    
     def __init__(self):
         self.client = self.connect()
         if self.client is None:
             raise WeaviateConnectionError("Failed to connect to Weaviate after multiple attempts.")
         self.collection_name = "DocumentChunks"
         self.get_schema()
-        self.embedding_model = EmbeddingModelFactory.get_model(model_type="huggingface", model_name="all-mpnet-base-v2")
+        self.embedding_model = EmbeddingModelFactory.get_model(model_type=self.EMBEDDING_MODEL_TYPE, model_name=self.EMBEDDING_MODEL)
         color_print("Connected to Weaviate.")
         
     @staticmethod

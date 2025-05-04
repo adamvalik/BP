@@ -1,28 +1,23 @@
-import json
+# ragas_evaluation.py - RAGAS evaluation script
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
 import datetime
-from tqdm import tqdm
+import json
+
 from dotenv import load_dotenv
-from weaviate.exceptions import WeaviateConnectionError
-
-from vector_store import VectorStore
-from reranker import Reranker
-from rewriter import Rewriter
+from langchain_openai import ChatOpenAI
 from llm_wraper import LLMWrapper
-from utils import color_print
-
 from ragas import EvaluationDataset, evaluate
 from ragas.llms import LangchainLLMWrapper
-from langchain_openai import ChatOpenAI
-
-# LLM metrics are more accurate and closer to human evaluation
-from ragas.metrics import (
-    LLMContextPrecisionWithoutReference,  # user_input, response, retrieved_contexts
-    LLMContextRecall,  # user_input, reference, retrieved_contexts
-    NoiseSensitivity,  # user_input, response, reference, retrieved_contexts -- mode="relevant" or "irrelevant"
-    ResponseRelevancy,  # user_input, response
-    Faithfulness,  # user_input, response, retrieved_contexts
-    FactualCorrectness, # response, reference
-)
+from ragas.metrics import (FactualCorrectness, Faithfulness,
+                           LLMContextPrecisionWithoutReference,
+                           LLMContextRecall, ResponseRelevancy)
+from reranker import Reranker
+from rewriter import Rewriter
+from tqdm import tqdm
+from utils import color_print
+from vector_store import VectorStore
+from weaviate.exceptions import WeaviateConnectionError
 
 # parameters
 TESTSET = "tests/test-sets/ragas_multi_hop.jsonl"
@@ -135,12 +130,9 @@ def evaluation(dataset_name: str):
         metrics=[
             LLMContextPrecisionWithoutReference(),  # vyhledal jsem relevantni chunky? - retrieval is focused
             LLMContextRecall(),                     # obsahuji chunky vse k poskytnuti odpovedi? - retrieval is complete
-            NoiseSensitivity(mode="irrelevant"),    # je odpoved dobra i pres sum? - system is robust
             ResponseRelevancy(),                    # je odpoved relevantni dotazu? - answer is helpful
             Faithfulness(),                         # vychazi odpoved z kontextu? - no hallucination
             FactualCorrectness(),                   # je odpoved fakticky spravna? - answer is correct
-            # FactualCorrectness(mode="precision"),
-            # FactualCorrectness(mode="recall")
         ],
         llm=evaluator_llm
     )

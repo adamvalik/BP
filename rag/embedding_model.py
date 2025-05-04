@@ -1,7 +1,12 @@
+# File: embedding_model.py - EmbeddingModel modules with base abstract class and a Factory
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
+import os
 from abc import ABC, abstractmethod
 from typing import List, Union
+
 from tqdm import tqdm
-import os
+
 
 class BaseEmbeddingModel(ABC):
     @abstractmethod
@@ -43,6 +48,7 @@ class OpenAIEmbeddingModel(BaseEmbeddingModel):
         self.client = self._init_client()
 
     def _init_client(self):
+        # lazy import
         import openai
         return openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 

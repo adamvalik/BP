@@ -1,18 +1,24 @@
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
-from googleapiclient.http import MediaIoBaseDownload
-from document_processor import DocumentProcessor
-from vector_store import VectorStore
-from utils import color_print
-from changes_state import load_page_token, save_page_token
+# File: google_drive_downloader.py - GoogleDriveDownloader module
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
 import io
+import json
 import os
 import re
 import uuid
-import json
+
+from dotenv import load_dotenv
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
+
+from changes_state import load_page_token, save_page_token
+from document_processor import DocumentProcessor
+from utils import color_print
+from vector_store import VectorStore
+
 
 class GoogleDriveDownloader:
-    NGROK_URL = "https://4773-147-229-117-1.ngrok-free.app/webhook" # /webhook endpoint in FastAPI
     CREDENTIALS_FILE = "credentials.json"
     ROOT_ID_FILE = "root_url.json"
 
@@ -53,6 +59,14 @@ class GoogleDriveDownloader:
         results = self.service.files().list(q=query, fields="files(id, name, mimeType)").execute()
         return results.get("files", [])
     
+    def get_parent_folder_name(self, file_id):
+        file = self.service.files().get(fileId=file_id, fields="parents").execute()
+        parent_id = file.get("parents", [None])[0]
+        if parent_id:
+            parent_file = self.service.files().get(fileId=parent_id, fields="name").execute()
+            return parent_file.get("name")
+        return None
+    
     # ----------------------------------------------------------------------------------------------------
     def download_file(self, file_id: str, file_name: str, folder_path: str):
         request = self.service.files().get_media(fileId=file_id)
@@ -80,7 +94,7 @@ class GoogleDriveDownloader:
             file_id = file["id"]
             mime_type = file["mimeType"]
 
-            # recursively download subfolder's contents
+            # recursively download subfolder contents
             if mime_type == "application/vnd.google-apps.folder":
                 subfolder_path = os.path.join(parent_path, file_name)
                 print(f"Entering folder: {file_name}")
@@ -114,7 +128,7 @@ class GoogleDriveDownloader:
             status, done = downloader.next_chunk()
         self.file_cnt += 1
 
-        file_buffer.seek(0)  # reset pointer
+        file_buffer.seek(0) # reset pointer
         return file_buffer.read()
                         
     def ingest_folder(self, folder_id, parent_path, vector_store: VectorStore):
@@ -131,7 +145,7 @@ class GoogleDriveDownloader:
             file_id = file["id"]
             mime_type = file["mimeType"]
 
-            # recursively download subfolder's contents
+            # recursively download subfolder contents
             if mime_type == "application/vnd.google-apps.folder":
                 subfolder_path = os.path.join(parent_path, filename)
                 print(f"Entering folder: {filename}")
@@ -182,16 +196,18 @@ class GoogleDriveDownloader:
         save_page_token(start_page_token)
 
     def start_changes_watch(self):
+        load_dotenv()
+        address = os.path.join(os.getenv("WEBHOOK_URL", ""), "webhook") # /webhook endpoint in FastAPI
         body = {
             "id": str(uuid.uuid4()),
             "type": "web_hook",
-            "address": self.NGROK_URL,
+            "address": address,
             "params": {
-                "ttl": "3600"  # 1 hour in seconds
+                "ttl": "3600"
             }
         }
         response = self.service.changes().watch(pageToken=load_page_token(), body=body).execute()
-        print("Watch response:", response)
+        print("[Changes] Watch response:", response)
         return response["id"], response["resourceId"]
     
     def stop_changes_watch(self, channel_id: str, resource_id: str):
@@ -200,17 +216,19 @@ class GoogleDriveDownloader:
             "resourceId": resource_id
         }
         self.service.channels().stop(body=body).execute()
-
+        color_print("[Changes] Watch stopped.", "yellow")
 
     def sync_changes(self, vector_store: VectorStore):
+        # page token tells where last sync ended
         page_token = load_page_token()
         if not page_token:
-            color_print("No page token found. Please initialize with `initialize_changes_page_token()` first.", "red")
-            return
+            color_print("[Changes] No page token found. Initializing...", "red")
+            self.initialize_changes_page_token()
 
         next_page_token = page_token
 
         while True:
+            # get a page of changes
             response = self.service.changes().list(
                 pageToken=next_page_token,
                 fields="changes(fileId, file(name, mimeType, trashed)), nextPageToken, newStartPageToken"
@@ -218,23 +236,22 @@ class GoogleDriveDownloader:
 
             changes = response.get("changes", [])
             for change in changes:
+                # handle each change
                 self.handle_change(change, vector_store)
 
-            # If there's more pages, continue
+            # check if there are more pages of changes
             next_page_token = response.get("nextPageToken")
             if not next_page_token:
-                # Possibly get newStartPageToken if present, meaning we've fully synced
                 new_start_page_token = response.get("newStartPageToken")
                 if new_start_page_token:
-                    # This is your new baseline for the next incremental sync
+                    # completely synchronized, save the new start page token
                     save_page_token(new_start_page_token)
                     print(f"[Changes] Sync complete. New start page token: {new_start_page_token}")
                 else:
-                    # Otherwise, we just re-save the last page token
                     save_page_token(page_token)
                 break
 
-            # Update our "page_token" so if something fails mid-way we won't re-process changes
+            # update page token for the next iteration
             page_token = next_page_token
             save_page_token(page_token)
             
@@ -252,32 +269,33 @@ class GoogleDriveDownloader:
         file_id = change.get("fileId")
         file_obj = change.get("file")
 
-        # If 'file' is not in the change, it might mean the file was permanently removed.
         if not file_obj:
-            # The file was removed, so remove from DB
+            # file was removed, delete from DB
             vector_store.delete_document(file_id)
             color_print(f"[Changes] File {file_id} was removed (no file object).", "yellow")
             return
 
-        # Check if it was trashed
         is_trashed = file_obj.get("trashed", False)
         if is_trashed:
+            # file was moved to trash, delete from DB
             vector_store.delete_document(file_id)
             color_print(f"[Changes] File {file_obj['name']} is trashed. Removed from DB.", "yellow")
             return
 
-        # Otherwise, it's a newly created or updated file
-        # We can re-download it and update our DB
+        # added or modified
         filename = file_obj["name"]
         mime_type = file_obj["mimeType"]
 
         rights = ""
-        # If we already have the file, remove the old version to replace it
+        updated = False
+        
         if vector_store.document_exists(file_id):
+            # update existing document (remove to re-ingest)
+            updated = True
             rights = vector_store.get_rights(file_id)
             vector_store.delete_document(file_id)
 
-        # Now re-ingest
+        # ingest the file
         if mime_type != "application/vnd.google-apps.folder":
             file_bytes = self.download_file_in_memory(file_id)
             doc_processor = DocumentProcessor(
@@ -287,8 +305,15 @@ class GoogleDriveDownloader:
             )
             if rights:
                 doc_processor.add_rights(rights)
+            else:
+                parent_folder_name = self.get_parent_folder_name(file_id)
+                if parent_folder_name == "superior":
+                    doc_processor.add_rights("superior")
+                elif parent_folder_name == "user":
+                    doc_processor.add_rights("user")
+            # process
             chunks = doc_processor.process()
-            vector_store.insert_chunks(chunks)
-            color_print(f"[Changes] File {filename} updated/created in DB.", "green")
-        else:
-            color_print(f"[Changes] Folder {filename} updated, ignoring folder ingestion.", "blue")
+            # insert into vector store
+            vector_store.insert_chunks(chunks)  
+            color_print(f"[Changes] File {filename} {'updated' if updated else 'created'} in DB.", "green")
+

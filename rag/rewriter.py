@@ -1,6 +1,11 @@
+# File: rewriter.py - Rewriter module
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
 import os
-import openai
 from typing import List
+
+import openai
+
 
 class Rewriter:
     CHATHISTORY_SIZE = 3  # number of turns to consider in chat history

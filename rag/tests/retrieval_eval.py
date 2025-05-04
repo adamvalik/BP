@@ -1,16 +1,18 @@
+# retrieval_eval.py - Retrieval testing script
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
 import json
-import csv
-from vector_store import VectorStore
+
+from dotenv import load_dotenv
 from reranker import Reranker
 from rewriter import Rewriter
 from tqdm import tqdm
 from utils import color_print
+from vector_store import VectorStore
 
-from dotenv import load_dotenv
 load_dotenv()
 
 QUERY_FILE = "tests/test-sets/queries_retrieval_cursed.jsonl"
-OUTPUT_CSV = "retrieval_eval_results.csv"
 AUTOCUT = True
 TOP_K = 1
 ALPHA = 0.55
@@ -33,7 +35,6 @@ for REWRITING in [False, True]:
 
 
         for c in tqdm(test_cases, desc="Evaluating", unit="case"):
-        # for c in test_cases:
             query = c["query"]
             expected_id = c["expected_chunk_id"]
             
@@ -71,10 +72,10 @@ for REWRITING in [False, True]:
         avg_rank = sum(ranks) / len(ranks) if ranks else 0
         avg_context_size = context_size / total
         summary = {
-            # "total": total,
+            "total": total,
             "recall@1": recall_at_1 / total,
             "in context": recall_at_k / total,
-            # "not found": total - recall_at_k,
+            "not found": total - recall_at_k,
             "average_rank": avg_rank,
             "average_context_size": avg_context_size,
         }
@@ -82,18 +83,8 @@ for REWRITING in [False, True]:
         color_print("\n=== Retrieval Evaluation Summary ===")
         color_print(f"File: {QUERY_FILE}", color="yellow")
         color_print(f"Rewriting: {REWRITING}", color="yellow")
-        # color_print(f"Parameters: TOP_K={TOP_K}, ALPHA={ALPHA}, RERANKING={RERANKING}, CUTOFF={RERANKER_CUTOFF}, AUTOCUT={AUTOCUT}", color="yellow")
+        color_print(f"Parameters: TOP_K={TOP_K}, ALPHA={ALPHA}, RERANKING={RERANKING}, REWRITING: {REWRITING}, CUTOFF={RERANKER_CUTOFF}, AUTOCUT={AUTOCUT}", color="yellow")
         for k, v in summary.items():
             color_print(f"{k}: {v}", color="yellow")
 
-
 vector_store.close()
-
-        # color_print("====================================\n")
-
-        # with open(OUTPUT_CSV, "w", newline='', encoding="utf-8") as csvfile:
-        #     fieldnames = ["query", "expected_chunk_id", "retrieved_ids", "rank"]
-        #     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        #     writer.writeheader()
-        #     for row in results:
-        #         writer.writerow(row)

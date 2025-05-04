@@ -1,7 +1,10 @@
-from typing import List
+# File: log.py - logging RAG pipeline
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
+import json
 import logging
 from chunk import Chunk
-import json
+from typing import List
 
 LOG_FILE = "rag.log"
 logging.basicConfig(
@@ -22,12 +25,12 @@ def log(query: str, rewritten_query: str, retrieved_chunks: List[Chunk], reranke
     logging.warning(f"Rewritten Query: {rewritten_query}")
 
     logging.warning("\nRetrieved Chunks:")
-    logging.warning(json.dumps(format_chunks(retrieved_chunks), indent=4))  # Pretty-print retrieved chunks
+    logging.warning(json.dumps(format_chunks(retrieved_chunks), indent=4))
 
     logging.warning("\nReranked Chunks:")
-    logging.warning(json.dumps(format_chunks(reranked_chunks), indent=4))  # Pretty-print reranked chunks
+    logging.warning(json.dumps(format_chunks(reranked_chunks), indent=4))
 
     logging.warning("\nLLM Response:")
-    logging.warning(llm_response.strip())  # Avoid excess newlines
+    logging.warning(llm_response.strip())
 
     logging.warning("-" * 50 + "\n\n")    

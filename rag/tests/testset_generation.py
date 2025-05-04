@@ -1,15 +1,20 @@
-import os
+# testset_generation.py - Testset generation script
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
 import datetime
+import os
 import random
 import shutil
+
 from dotenv import load_dotenv
 from langchain_core.documents import Document
-from ragas.llms import LangchainLLMWrapper
-from ragas.embeddings import LangchainEmbeddingsWrapper
-from langchain_openai import ChatOpenAI
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+from langchain_openai import ChatOpenAI
+from ragas.embeddings import LangchainEmbeddingsWrapper
+from ragas.llms import LangchainLLMWrapper
 from ragas.testset import TestsetGenerator
 from unstructured.partition.text import partition_text
+
 from utils import color_print
 
 NUM_ARTICLES = 60

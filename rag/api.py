@@ -1,20 +1,25 @@
-from pydantic import BaseModel
-from fastapi import FastAPI, HTTPException, Header
+# api.py - FastAPI server for RAG system
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
+import json
+from contextlib import asynccontextmanager
+from typing import List
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from dotenv import load_dotenv
+from pydantic import BaseModel
 from weaviate.exceptions import WeaviateConnectionError
-from contextlib import asynccontextmanager
-import json
-from reranker import Reranker
 
+from google_drive_downloader import GoogleDriveDownloader
+from llm_wraper import LLMWrapper
+from log import log
+from reranker import Reranker
+from rewriter import Rewriter
 from utils import color_print
 from vector_store import VectorStore
-from llm_wraper import LLMWrapper
-from google_drive_downloader import GoogleDriveDownloader
-from rewriter import Rewriter
-from log import log
-from typing import List
+
 
 class QueryRequest(BaseModel):
     query: str
@@ -28,15 +33,14 @@ class FolderIngestRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_dotenv()
-    # gd_downloader = GoogleDriveDownloader()
-    # gd_downloader.initialize_changes_page_token()
-    # channel_id, response_id = gd_downloader.start_changes_watch()
+    gd_downloader = GoogleDriveDownloader()
+    gd_downloader.initialize_changes_page_token()
+    channel_id, response_id = gd_downloader.start_changes_watch()
     yield
-    # gd_downloader.stop_changes_watch(channel_id, response_id)
-    # print("Google Drive Changes watch stopped.")
+    gd_downloader.stop_changes_watch(channel_id, response_id)
 
 
-app = FastAPI(lifespan=lifespan) # uncomment for GDrive integration
+app = FastAPI(lifespan=lifespan)
 
 # CORS middleware
 app.add_middleware(
@@ -85,8 +89,8 @@ def query_endpoint(request: QueryRequest):
     print(f"Query: {request.query}, Rights: {request.rights}, Use History: {request.use_history}, History: {request.history}")
     
     vector_store = connect_to_vector_store()
-        
-    # rewrite the query to optimize for retrieval
+
+    # rewriting
     if request.use_history:
         rewritten_query = Rewriter.rewrite_with_history(request.query, request.history)
     else:
@@ -94,6 +98,7 @@ def query_endpoint(request: QueryRequest):
 
     color_print(f"Rewritten query: {rewritten_query}", color="yellow")
     
+    # hybrid search
     if request.rights == "user":
         chunks = vector_store.hybrid_search(rewritten_query, autocut=True, k=3, rights="user")
     else:
@@ -103,14 +108,16 @@ def query_endpoint(request: QueryRequest):
         
     vector_store.close()    
     
+    # reranking, filtering
     reranked_chunks = Reranker.rerank(rewritten_query, chunks)
-    
+
     color_print(f"Reranked chunks: {len(reranked_chunks)}", color="yellow")
-        
+
     llm_wrapper = LLMWrapper()
     response = []
     llm_query = rewritten_query if request.use_history else request.query
 
+    # generate response (streaming)
     def stream():
         serialized_chunks = [vars(chunk) for chunk in reranked_chunks]
         yield json.dumps({
@@ -146,11 +153,7 @@ async def receive_notification(
     print("========================\n")
     
     if x_goog_resource_state == "change":
-        try:
-            vector_store = VectorStore()
-        except WeaviateConnectionError:
-            # handle weaviate connection error
-            raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
+        vector_store = connect_to_vector_store()
         
         gd_downloader = GoogleDriveDownloader()
         gd_downloader.sync_changes(vector_store)
@@ -164,11 +167,8 @@ def root():
 
 @app.get("/sync")
 def sync():
-    try:
-        vector_store = VectorStore()
-    except WeaviateConnectionError:
-        # handle weaviate connection error
-        raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
+    # manually trigger sync
+    vector_store = connect_to_vector_store()
     
     gd_downloader = GoogleDriveDownloader()
     gd_downloader.sync_changes(vector_store)
@@ -178,11 +178,7 @@ def sync():
     
 @app.get("/filenames")
 def get_all_filenames():
-    try:
-        vector_store = VectorStore()
-    except WeaviateConnectionError:
-        # handle weaviate connection error
-        raise HTTPException(status_code=500, detail="Failed to connect to VectorStore.")
+    vector_store = connect_to_vector_store()
     
     filenames = vector_store.get_all_filenames()
     vector_store.close()

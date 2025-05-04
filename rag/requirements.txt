@@ -13,15 +13,16 @@ sentence-transformers
 openai
 pytest
 python-dotenv
-langchain-openai
-langchain-huggingface
-unstructured-inference
-pdfminer-six
-pi-heif
-pdf2image
+# langchain-openai
+# langchain-huggingface
+# unstructured-inference
+# pdfminer-six
+# pi-heif
+# pdf2image
 markdown
-python-docx
-unstructured-pytesseract
-langchain-community
-ragas
+# python-docx
+# unstructured-pytesseract
+# langchain-community
+# ragas
 tiktoken
+hf_xet

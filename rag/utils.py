@@ -1,3 +1,6 @@
+# File: utils.py - Utility functions
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
 color_codes = {
     "red": "31",
     "green": "32",

@@ -1,4 +1,8 @@
+# File: chunk.py - Chunk class
+# Author: Adam Valík <xvalik05@stud.fit.vut.cz>
+
 from dataclasses import dataclass
+
 
 @dataclass
 class Chunk:
