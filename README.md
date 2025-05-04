@@ -4,10 +4,10 @@ This project uses Docker Compose, which is included with Docker Desktop (downloa
 
 ## Project Structure
 
-- doc: Documentation.
-- rag: Contains the RAG implementation and FastAPI endpoints.
-- web_app: Contains the Vue.js frontend code.
-- docker-compose.yml: Docker Compose configuration to manage all services.
+- `doc/`: Documentation.
+- `rag/`: Contains the RAG implementation and FastAPI endpoints.
+- `web_app/`: Contains the Vue.js frontend code.
+- `docker-compose.yml`: Docker Compose configuration to manage all services.
 ```
 .
 ├── doc
@@ -51,7 +51,7 @@ This project uses Docker Compose, which is included with Docker Desktop (downloa
 ```
 
 ## Technologies Used
-This project integrates several modern tools to build a RAG system, The implementation follows the official documentation of each technology:
+This project integrates several modern tools to build a RAG system. The implementation follows the official documentation of each technology:
 - [Unstructured.io](https://docs.unstructured.io/open-source/introduction/overview/) - for document processing
 - [FastAPI StreamingResponse](https://fastapi.tiangolo.com/advanced/custom-response/#streamingresponse) - for streaming responses
 - [NLTK Sentence Tokenizer](https://www.nltk.org/api/nltk.tokenize.sent_tokenize.html) - for sentence splitting
@@ -65,12 +65,11 @@ This project integrates several modern tools to build a RAG system, The implemen
 - [Ngrok](https://ngrok.com/docs) - for exposing the FastAPI server to the internet
   
 ## Build
+Setup the environment variables in `.env` file. Use `.env.example` as a template.
 
 ```bash
 docker compose up --build
 ```
-Setup the environment variables in `.env` file. Use `.env.example` as a template.
-
 
 Services will be available at:
 - [http://localhost:8081](http://localhost:8080) - Web App frontend
@@ -89,7 +88,8 @@ For Google Drive integration, you need to set up the Google Drive API and obtain
 4. Create a service account and download the `credentials.json` file.
 5. Move the `credentials.json` file to the `rag` directory.
 
-Expose the FastAPI server to the internet, so Google Drive can send notifications about changes. Ngrok can be used for that.
+Expose the FastAPI server to the internet, so Google Drive can send notifications about changes. 
+You can use [ngrok](https://ngrok.com/) for this purpose.
 ```bash
 ngrok http http://localhost:8000
 ```

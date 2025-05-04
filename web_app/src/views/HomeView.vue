@@ -1,3 +1,6 @@
+<!-- File: HomeView.vue - Frontend web app for RAG system -->
+<!-- Author: Adam Valík <xvalik05@stud.fit.vut.cz> -->
+
 <template>
   <div class="flex flex-col h-screen px-20 py-10 bg-gray-900 text-gray-200">
     <div class="flex justify-between items-center">
