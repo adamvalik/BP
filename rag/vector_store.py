@@ -8,7 +8,6 @@ from chunk import Chunk
 from typing import List, Optional
 
 from tqdm import tqdm
-from rag.tests.ragas_evaluation import EMBEDDING
 from weaviate import connect_to_local
 from weaviate.classes.config import (Configure, DataType, Property,
                                      VectorDistances)

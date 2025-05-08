@@ -7,7 +7,7 @@
 {"query": "In EU and USA, how does, like, legal stuff go with stewardship of products?", "expected_chunk_id": "wiki_01.txt_53"}
 {"query": "Books and poems, Kipling wrote which ones huh?", "expected_chunk_id": "wiki_01.txt_68"}
 {"query": "Uhmm what kinda stuff is rec, like, re-creational activity examples?", "expected_chunk_id": "wiki_01.txt_69"}
-{"query": "What range of wave lenght does, umm, red light belong to?", "expected_chunk_id": "wiki_01.txt_70"}
+{"query": "Whatz the wavlenght range of red ligth?", "expected_chunk_id": "wiki_01.txt_70"}
 {"query": "Eating food raw... risky why, tho?", "expected_chunk_id": "wiki_01.txt_71"}
 {"query": "Roman Empire start date and how did it actually, like, end?", "expected_chunk_id": "wiki_01.txt_72"}
 {"query": "Trades and those king stuff in Roman timez, what were they?", "expected_chunk_id": "wiki_01.txt_73"}
@@ -90,7 +90,7 @@
 {"query": "What is the difference between foolishnes and stupidity?", "expected_chunk_id": "wiki_03.txt_279"}
 {"query": "What contribushuns did Aristotle make to phillosophy and education?", "expected_chunk_id": "wiki_03.txt_280"}
 {"query": "Who was Matsuo Basho and what is he known for?", "expected_chunk_id": "wiki_03.txt_289"}
-{"query": "What is colonnization and how is it depiccted in science fiction?", "expected_chunk_id": "wiki_03.txt_291"}
+{"query": "What is colonnization and how is it depiccted in scifi?", "expected_chunk_id": "wiki_03.txt_291"}
 {"query": "What does a coreographer do and in what fields?", "expected_chunk_id": "wiki_03.txt_292"}
 {"query": "How does an elektrical cell produce electricity?", "expected_chunk_id": "wiki_03.txt_293"}
 {"query": "What happens when an iron electrod is used in an elektrical cell?", "expected_chunk_id": "wiki_03.txt_294"}

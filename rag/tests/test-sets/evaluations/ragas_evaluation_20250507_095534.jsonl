@@ -1,0 +1,3 @@
+{"TESTSET": "tests/test-sets/ragas_single_hop.jsonl", "REWRITING": true, "ALPHA": 0.55, "AUTOCUT": true, "TOP_K": 3, "RERANKING": true, "RERANKER_CUTOFF": 0.5, "MODEL": "gpt-4o", "TEMPERATURE": 0.2, "EMBEDDING": "sentence-transformers/all-mpnet-base-v2", "CHUNK_SIZE_LIMIT": 374, "OVERLAP": "1 sentence", "average_input_tokens": 1337.96}
+{"llm_context_precision_without_reference": 0.8748007214485695, "context_recall": 0.7923333333333332, "answer_relevancy": 0.8884954848912687, "faithfulness": 0.8562532467532468, "factual_correctness(mode=f1)": 0.5456}
+{"avg_tokens": 1337.96}

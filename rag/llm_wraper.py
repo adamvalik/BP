@@ -6,7 +6,6 @@ from chunk import Chunk
 from typing import List
 
 import openai
-import tiktoken
 
 
 class LLMWrapper:
@@ -78,6 +77,7 @@ class LLMWrapper:
         # used for evaluation
         messages = LLMWrapper.construct_messages(query, chunks)
         
+        import tiktoken
         if model == "gpt-4.1":
             enc = tiktoken.get_encoding("o200k_base")
         else:

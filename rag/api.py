@@ -2,6 +2,7 @@
 # Author: Adam Valík <xvalik05@stud.fit.vut.cz>
 
 import json
+import time
 from contextlib import asynccontextmanager
 from typing import List
 
@@ -87,31 +88,42 @@ def delete_schema():
 @app.post("/query")
 def query_endpoint(request: QueryRequest):
     print(f"Query: {request.query}, Rights: {request.rights}, Use History: {request.use_history}, History: {request.history}")
+    timings = {}
+    start = time.perf_counter()
+    overall_start = start
     
     vector_store = connect_to_vector_store()
+    timings["connect_vector_store"] = time.perf_counter() - start
 
     # rewriting
+    start = time.perf_counter()
     if request.use_history:
         rewritten_query = Rewriter.rewrite_with_history(request.query, request.history)
     else:
         rewritten_query = Rewriter.rewrite(request.query)
+    timings["rewrite_query"] = time.perf_counter() - start
 
     color_print(f"Rewritten query: {rewritten_query}", color="yellow")
     
     # hybrid search
+    start = time.perf_counter()
     if request.rights == "user":
         chunks = vector_store.hybrid_search(rewritten_query, autocut=True, k=3, rights="user")
     else:
         chunks = vector_store.hybrid_search(rewritten_query, autocut=True, k=3)
+    timings["hybrid_search"] = time.perf_counter() - start
         
     color_print(f"Hybrid search returned {len(chunks)} chunks.", color="yellow")
         
     vector_store.close()    
     
     # reranking, filtering
+    start = time.perf_counter()
     reranked_chunks = Reranker.rerank(rewritten_query, chunks)
+    timings["reranking"] = time.perf_counter() - start
 
     color_print(f"Reranked chunks: {len(reranked_chunks)}", color="yellow")
+    start = time.perf_counter()
 
     llm_wrapper = LLMWrapper()
     response = []
@@ -127,15 +139,18 @@ def query_endpoint(request: QueryRequest):
             }
         }) + "\n"
 
-
-        for llm_response in llm_wrapper.get_stream_response(llm_query, reranked_chunks):
+        # stream llm response
+        generator = llm_wrapper.get_stream_response(llm_query, reranked_chunks)
+        timings["llm_query"] = time.perf_counter() - start
+        timings["complete_pipeline"] = time.perf_counter() - overall_start
+        for llm_response in generator:
             response.append(llm_response)
             yield json.dumps({
                 "text": llm_response, # response.choices[0].delta.content (str)
                 "metadata": None
             }) + "\n"
             
-        log(request.query, rewritten_query, chunks, reranked_chunks, "".join(response))
+        log(request.query, rewritten_query, chunks, reranked_chunks, "".join(response), timings=timings)
     
     color_print("Generating response...", color="yellow")
     

@@ -7,11 +7,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # path to a dataset folder
-# "/Users/adamvalik/Downloads/kaggle-wiki"
+# "/Users/adamvalik/Downloads/test-wiki"
 # "/Users/adamvalik/Downloads/txt-dataset-1"
 # "/Users/adamvalik/Downloads/txt-dataset-2"
 
-dataset_folder = "/Users/adamvalik/Downloads/test-wiki"
+dataset_folder = "/Users/adamvalik/Downloads/kaggle-wiki"
 
 def add_documents(folder_path):
     color_print(f"\nIngesting documents from directory: {folder_path}", color="blue")

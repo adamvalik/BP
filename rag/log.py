@@ -13,10 +13,17 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
     filename=LOG_FILE,
     encoding="utf-8",
-    filemode="a"
+    filemode="a",
 )
 
-def log(query: str, rewritten_query: str, retrieved_chunks: List[Chunk], reranked_chunks: List[Chunk], llm_response: str):
+def log(
+    query: str,
+    rewritten_query: str,
+    retrieved_chunks: List[Chunk],
+    reranked_chunks: List[Chunk],
+    llm_response: str,
+    timings: dict = None
+):
     def format_chunks(chunks):
         return [chunk.log() for chunk in chunks]
 
@@ -33,4 +40,9 @@ def log(query: str, rewritten_query: str, retrieved_chunks: List[Chunk], reranke
     logging.warning("\nLLM Response:")
     logging.warning(llm_response.strip())
 
-    logging.warning("-" * 50 + "\n\n")    
+    if timings:
+        logging.warning("\nTimings (seconds):")
+        for step, duration in timings.items():
+            logging.warning(f"  {step:25}: {duration:.4f}")
+
+    logging.warning("-" * 50 + "\n\n")

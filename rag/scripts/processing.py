@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 from tqdm import tqdm
 load_dotenv()
 
-TEST_FOLDER = "/Users/adamvalik/Downloads/test-wiki"
-FROM = 3
-TO = 3
+TEST_FOLDER = "/Users/adamvalik/Downloads/kaggle-wiki"
+FROM = 1
+TO = 30
 
 # ----------------------------------------------------------------------------------------------
 files = os.listdir(TEST_FOLDER)
@@ -20,8 +20,9 @@ for i, file_name in tqdm(enumerate(files), total=len(files)):
         file_path = os.path.join(TEST_FOLDER, file_name)
         if os.path.isfile(file_path):
             document_processor = DocumentProcessor(filename=file_path)
-            chunks = document_processor.process(verbose=True)
+            chunks = document_processor.process(verbose=False)
             num_chunks.append(len(chunks))
+            print(f"File: {file_name}, Number of chunks: {len(chunks)}")
         elif os.path.isdir(file_path):
             print(f"Skipping directory: {file_path}")
 

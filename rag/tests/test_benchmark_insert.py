@@ -12,7 +12,7 @@ TEST_FILE_PATH = "tests/test-files/long.txt"
 def chunks_and_embeddings():
     document_processor = DocumentProcessor(TEST_FILE_PATH)
     chunks = document_processor.process()
-    embedding_model = EmbeddingModelFactory.get_model(model_type="huggingface", model_name="all-MiniLM-L6-v2")
+    embedding_model = EmbeddingModelFactory.get_model(model_type="huggingface", model_name="all-mpnet-base-v2")
     embeddings = embedding_model.embed([chunk.text for chunk in chunks])
     return chunks, embeddings
 

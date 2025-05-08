@@ -10,10 +10,6 @@ import emoji
 import nltk
 from transformers import AutoTokenizer
 from unstructured.cleaners.core import clean
-# from unstructured.partition.doc import partition_doc
-# from unstructured.partition.docx import partition_docx
-# from unstructured.partition.image import partition_image
-# from unstructured.partition.pdf import partition_pdf
 from unstructured.partition.text import partition_text
 
 from utils import color_print
@@ -52,27 +48,37 @@ class DocumentProcessor():
                 
                 if self.ext == "txt":
                     self.elements = partition_text(file=file_stream)
-                # elif self.ext == "pdf":
-                #     self.elements = partition_pdf(file=file_stream)
-                # elif self.ext == "doc":
-                #     self.elements = partition_doc(file=file_stream)
-                # elif self.ext == "docx":
-                #     self.elements = partition_docx(file=file_stream)
-                # elif self.ext == "jpg" or self.ext == "png" or self.ext == "heic":
-                #     self.elements = partition_image(file=file_stream)
+
+                elif self.ext == "pdf":
+                    from unstructured.partition.pdf import partition_pdf
+                    self.elements = partition_pdf(file=file_stream)
+                elif self.ext == "doc":
+                    from unstructured.partition.doc import partition_doc
+                    self.elements = partition_doc(file=file_stream)
+                elif self.ext == "docx":
+                    from unstructured.partition.docx import partition_docx
+                    self.elements = partition_docx(file=file_stream)
+                elif self.ext == "jpg" or self.ext == "png" or self.ext == "heic":
+                    from unstructured.partition.image import partition_image
+                    self.elements = partition_image(file=file_stream)
                 
             else:
                 # disk-based partition
                 if self.ext == "txt":
                     self.elements = partition_text(filename=self.filename)
-                # elif self.ext == "pdf":
-                #     self.elements = partition_pdf(filename=self.filename)
-                # elif self.ext == "doc":
-                #     self.elements = partition_doc(filename=self.filename)
-                # elif self.ext == "docx":
-                #     self.elements = partition_docx(filename=self.filename)
-                # elif self.ext == "jpg" or self.ext == "png" or self.ext == "heic":
-                #     self.elements = partition_image(filename=self.filename)
+
+                elif self.ext == "pdf":
+                    from unstructured.partition.pdf import partition_pdf
+                    self.elements = partition_pdf(filename=self.filename)
+                elif self.ext == "doc":
+                    from unstructured.partition.doc import partition_doc
+                    self.elements = partition_doc(filename=self.filename)
+                elif self.ext == "docx":
+                    from unstructured.partition.docx import partition_docx
+                    self.elements = partition_docx(filename=self.filename)
+                elif self.ext == "jpg" or self.ext == "png" or self.ext == "heic":
+                    from unstructured.partition.image import partition_image
+                    self.elements = partition_image(filename=self.filename)
 
         except FileNotFoundError:
             color_print(message="File not found", color="red", additional_text=f": {self.filename}, processing is skipped.")

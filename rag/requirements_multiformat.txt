@@ -13,5 +13,11 @@ sentence-transformers
 openai
 python-dotenv
 tqdm
+unstructured-inference
+pdfminer-six
+pi-heif
+pdf2image
 markdown
+python-docx
+unstructured-pytesseract
 hf_xet

@@ -20,6 +20,7 @@ This project uses Docker Compose, which is included with Docker Desktop (downloa
 │   │   ├── test-sets - test sets and results of the evaluation
 │   │   ├── ragas_evaluation.py - evaluation script
 │   │   ├── retrieval_eval.py - retrieval test script
+│   │   ├── test_benchmark_insert.py - benchmark for insert methods
 │   │   └── testset_generation.py - test set generation script
 │   ├── .env.example - example of environment variables (turn into .env)
 │   ├── api.py - FastAPI app
@@ -31,7 +32,9 @@ This project uses Docker Compose, which is included with Docker Desktop (downloa
 │   ├── chunk.py
 │   ├── llm_wrapper.py
 │   ├── log.py
-│   ├── requirements.txt
+│   ├── requirements_eval.txt - libraries for evaluation
+│   ├── requirements_multiformat.txt - libraries for multiformat document support
+│   ├── requirements.txt - libraries for the system
 │   ├── reranker.py
 │   ├── rewriter.py
 │   ├── utils.py
@@ -65,7 +68,7 @@ This project integrates several modern tools to build a RAG system. The implemen
 - [Ngrok](https://ngrok.com/docs) - for exposing the FastAPI server to the internet
   
 ## Build
-Setup the environment variables in `.env` file. Use `.env.example` as a template.
+Setup the environment variables in `.env` file. Use `.env.example` as a template. Update the `rag/Dockerfile` if you want to support documents in various formats (needs additional tools and libraries).
 
 ```bash
 docker compose up --build
@@ -102,12 +105,9 @@ For testing the RAG system, setup the virtual environment and install the requir
 cd rag
 python -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements_eval.txt
 ```
 
 System was tested on dataset from [kaggle Plain text Wikipedia (SimpleEnglish)](https://www.kaggle.com/datasets/ffatty/plain-text-wikipedia-simpleenglish)
 
-Use the scripts to insert data into the Weaviate vector store and test the system.
-```bash
-python insert_data.py
-```
+Use the `insert_data.py` script to insert data into the Weaviate vector store and test the system with scripts in the `tests` directory. 
