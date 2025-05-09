@@ -1,0 +1,1108 @@
+% Pro kompilaci po částech (viz projekt.tex), nutno odkomentovat a upravit
+%\documentclass[../projekt.tex]{subfiles}
+%\begin{document}
+
+\chapter{Úvod}
+Vyhledávání informací ve velkých objemech dokumentů naráží v dnešní době nejen na samotné množství dat, ale především na jejich různorodost a absenci jednotné struktury. Interní dokumentace firem, odborné články, právní texty či technické manuály bývají často uloženy v různých formátech jako nestrukturovaná data, což komplikuje jejich uložení do tradičních databází a prohledávání na základě klíčových slov. Vzniká tak potřeba nástrojů, které porozumí významu textů a nabídnou rozhraní pro dotazování nad vlastními dokumenty v přirozeném jazyce s co nejrychlejší odezvou.
+
+K~moderním přístupům zpracování přirozeného jazyka patří vektorové databáze, které dokáží pracovat i~s~nestrukturovanými daty, jako jsou texty, obrázky nebo třeba zvuková data, která reprezentují pomocí vektorů. Svou formou zachycují význam dat, čímž je umožňují sémanticky vyhledávat. Ačkoliv zde techniky a algoritmy sémantického vyhledávání již existují řadu let, řešení ve~formě systému správy vektorových databází jsou na vzestupu v~posledních dvou letech s~vzestupem zájmu o AI. 
+
+Spojením vyhledávání ve vektorových databázích a předtrénovaného jazykového modelu lze vytvořit systém, kterému se~říká Retrieval-Augmented Generation (RAG), neboli generování rozšířené o~získávání informací. RAG kombinuje schopnost jazykového modelu generovat srozumitelné odpovědi v přirozeném jazyce, které zakládá na specifických informacích vyhledaných ve znalostní bázi.
+
+Tento přístup má široké využití. Umožňuje např. vyhledávání nad velkým množstvím interní dokumentace firem nebo v~akademickém prostředí při práci s odbornými texty. Vše závisí na poskytnutí dokumentů pro znalostní bázi a jejich pečlivém zpracování pro uložení do vektorové databáze. To přináší absenci potřeby tréninku vlastního jazykového modelu a usnadňuje nasazení pokročilého nástroje zpracování přirozeného jazyka.
+
+Cílem kapitoly~\ref{vdb} je tak shrnout fungování vektorových databází pro pochopení následné integrace s~jazykovým modelem (systém RAG), které je popsáno v~kapitole~\ref{rag}. Výsledkem této práce je pak vytvoření komplexního systému, který nabídne uživatelům získávat informace z~velkého množství vlastních dokumentů. Je toho dosaženo kombinací moderních přístupů zpracování přirozeného jazyka, jako jsou práce s~nestrukturovanými daty, embedding modely a vektorové databáze s~jejich indexací pro efektivní hybridní vyhledávání k~získávání informací. Promptování a generativní schopnosti jazykového modelu nakonec slouží pro navrácení lidsky formulované odpovědi podložené informacemi z~báze znalostí. Architektura tohoto systému se~nachází v~kapitole~\ref{navrh} a jeho implementační detaily v~kapitole~\ref{implementace}. Na závěr, v~kapitole~\ref{evaluace}, jsou experimentálně doladěny parametry systému a ověřena jeho úspěšnost, škálovatelnost a efektivita.
+
+\chapter{Vektorové databáze}
+\label{vdb}
+
+Již v~roce 1998 se odhadovalo, že více než 85\% veškerých dat neexistuje ve~strukturované formě, a tedy je nelze zpracovávat pomocí relačních databází~\cite{blumberg2003_unstructured_data}. Před zhruba deseti lety, s~vývojem zpracování přirozeného jazyka a hlubokého učení, začaly vznikat trénované modely se schopností reprezentovat nestrukturovaná data jako vektory, které zachovávají význam dat a jejich vlastnosti. V důsledku tomu začal během posledních let vývoj tvorby nového typu databáze jako řešení pro zpracování a vyhledávání nestrukturovaných dat.
+
+\uv{Vektorová databáze je typ databáze, která ukládá data jako vysokorozměrné vektory, což jsou matematické reprezentace rysů nebo atributů.}~\cite{han2023_vector_database}. Tyto databáze byly navrženy právě za účelem efektivního ukládání a vyhledávání vektorů. Jejich síla pak spočívá v možnosti provádět vyhledávání na základě sémantické podobnosti, což je zásadní rozdíl oproti tradičním relačním databázím, které operují nad přesnými hodnotami ve sloupcích.
+
+Vektorové databáze se tak stávají klíčovým nástrojem v moderních aplikacích, jako jsou doporučovací systémy, chatboti či systémy sémantického vyhledávání. V následujících podkapitolách je detailněji popsáno, jak vektorové databáze zpracovávají nestrukturovaná data, jak funguje vektorová reprezentace dat a jakým způsobem se provádí indexace pro rychlé vyhledávání.
+
+\section{Nestrukturovaná data}
+Lidé i~stroje produkují velké množství dat, které nesplňují předem daný formát nebo schéma. Taková data jsou pak náročná na vyhledávání a vyžadují předzpracování a analýzu. Nestrukturovaná data nezapadají do relačních databázových systémů, jelikož je nelze reprezentovat hodnotami uloženými do sloupců tabulky jako data strukturovaná. Spadají tak do datového typu BLOB (Binary Large Object), přes který nelze snadno vyhledávat. 
+
+Příkladem nestrukturovaných dat jsou~\cite{zilliz2022_unstructured_data}:
+\begin{itemize}
+    \item \textbf{data vytvořená člověkem}: e-maily, textové dokumenty, poznámky, obrázky, audio nebo video nahrávky,
+    \item \textbf{data vytvořená strojem}: údaje ze senzorů, data počítačového vidění, webová a~aplikační data, logy, data z~IoT zařízení.
+\end{itemize} 
+
+Mezi strukturovanými a nestrukturovanými daty existuje mezikrok, který se nazývá polostrukturovaná data. Vznikají přidáním metadat nebo významových tagů, čímž je dodána nestrukturovaným datům jistá forma organizace nebo hierarchie~\cite{semi-structured}. Například k~obrázkům, které jsou binárním popisem vlastností jednotlivých pixelů, lze přidat údaje o~autorovi, datu a místu vzniku, což umožňuje snadnější filtrování a organizaci dat.
+
+Nestrukturovaná data jsou nejen ukládána, ale procesem vektorizace je jim přidělena sémantika~\cite{Taipalus_2024}. Proto pro efektivní uložení a vyhledávání nestrukturovaných dat hrají klíčovou roli systémy pro správu vektorových databází.
+ 
+\section{Vektorová reprezentace dat}
+Vektor je v~matematice formálně definován jako prvek vektorového prostoru. Pakliže má tento prostor konečné rozměry, lze hovořit o~uspořádané n-tici čísel, kde $n$ udává dimenzi vektoru. S~vektory lze provádět operace vektorové aritmetiky, kde nejdůležitější roli pro vektorové databáze hrají podobnostní funkce, jako kosinová podobnost, Euklidovská vzdálenost nebo skalární součin~\cite{mathworld_vector}.
+
+V kontextu vektorových databází jsou vektory tvořeny transformací dat na matematickou reprezentaci pomocí modelů strojového učení, které se~nazývají embedding modely~\cite{han2023_vector_database}. Vektory si tedy lze představit jako soubor čísel, kde každé z~nich reprezentuje číselné vyjádření určité vlastnosti dat. Např. na obrázku \ref{fig:vector2D} je zobrazen 2D prostor. Pakliže jednotlivým složkám dvourozměrného vektoru přidělíme nějaký rys, můžeme ohodnotit např. dramata označující řecké hry na základě toho, jak komické a tragické jsou, a uložit je do tohoto vektorového prostoru.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{obrazky/vectors.pdf}
+    \caption{Příklad vektorového prostoru o~dvou dimenzích. Podobnost vlastností dat lze vypočítat vzájemnou vzdáleností mezi vektory, a tak významově podobná data jsou blízko sebe. Tento obrázek byl převzat z~\cite{Taipalus_2024}.}
+    \label{fig:vector2D}
+\end{figure}
+
+Komplexní data však vyžadují mnohem více popisů atributů, a tak podobně jako nestrukturovaná data, vysoce dimenzionální vektory nejsou pro lidi čitelné a uchopitelné. Pro práci s~vektory není nutné užití specializovaných vektorových databází, avšak jak počet vektorů a jejich dimenze roste, vektorový databázový systém poskytuje efektivní řešení pro uložení a vyhledávání nad těmito komplexními daty~\cite{Taipalus_2024}. Počet dimenzí vektorů se~snadno pohybuje od stovek po tisíce s~tím, že s~vývojem poroste na desítky tisíc. Toto číslo se~odvíjí od architektury použitého embedding modelu.
+
+\section{Embedding modely}
+Proces vektorizace lze označit jako \uv{transformaci dat na vysoce dimenzionální vektorovou reprezentaci, která zachycuje smysluplné vztahy a vzorce}~\cite{Taipalus_2024}. Cílem embedding modelů je zachytit význam dat v~numerické podobě, aby byly použitelné pro výpočetní modely. Výsledné vektory, též nazývané \textit{embeddingy}, umožňují strojům práci s~nestrukturovanými daty, jelikož jejich poloha v~prostoru odráží vzájemné vztahy s~ostatními vektory. Významově podobná vstupní data tak budou blízko sebe. Demonstraci vektorové aritmetiky a vzájemného vztahu mezi daty uloženými ve~vektorovém prostoru lze ilustrovat na klasickém příkladu~\cite{analogies}: Mějme vektorový prostor obsahující vektorové reprezentace slov ze slovníku. Mějme vektorovou reprezentaci slova \textit{král}. Odečteme-li od slova \textit{král} slovo \textit{muž} a následně přičteme slovo \textit{žena}, nejbližší vektor tomuto vypočtenému vektoru bude ten, který reprezentuje slovo \textit{královna}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{obrazky/kingqueen.pdf}
+    \caption{Příklad vektorové aritmetiky mezi embeddingy ve~vektorovém prostoru.\newline Zde $w_{queen} \approx w_{king} - w_{man} + w_{woman}$.}
+    \label{fig:vector2D}
+\end{figure}
+
+Embedding modely jsou jedním z~produktů strojového učení. Obecně vznikají trénováním na rozsáhlých sadách nestrukturovaných dat, např. textových korpusech, obrázcích nebo zvukových souborech. Tato práce se~specificky zaměřuje na zpracování textových dokumentů, kde embedding modely patří k~významnému nástroji zpracování přirozeného jazyka. 
+
+\subsection{Word Embeddings}
+Prvním průlomem ve~vývoji embedding modelů byly \textit{word embeddings}, které vektorizují jednotlivá slova. Pro proces konverze se~používají nástroje jako Word2vec, který využívá neuronové sítě k~naučení asociace slova z~velkého textového korpusu. Word2vec byl navržen jako 2 modely~\cite{camacho-collados2018_word_sense_embeddings}, kde:
+\begin{itemize}
+    \item \textbf{CBOW} (Continuous Bag-Of-Words) se~zaměřuje na předpovídání aktuálního slova na základě okolního kontextu, zatímco
+    \item \textbf{Skip-gram} se~na rozdíl od CBOW zaměřuje na předpovídání kontextu pro dané slovo.
+\end{itemize} 
+Další významnou architekturou je GloVe (Global Vectors)~\cite{pennington2014_glove}.
+
+Cíl reprezentovat každé slovo bodem ve~vektorovém prostoru má hlavní nedostatek, jelikož ignoruje možnosti slova, které má v~různých kontextech různý význam. Problémem word embeddings tak je, že vícevýznamová slova jsou přeložena v~každém svém významu ve~větě na identickou vektorovou reprezentaci. Zachycení správné sémantiky vícevýznamových slov však hraje klíčovou roli v~porozumění jazyku NLP systémů. Může se~tak stát, že slova \textit{krysa} a \textit{počítač} budou \uv{blízko sebe}, ačkoliv spolu sémanticky nesouvisí, jelikož se~budou obě významově blížit slovu \textit{myš}~\cite{camacho-collados2018_word_sense_embeddings}.
+
+\subsection{Kontextové modely}
+Moderní kontextové embedding modely, jako jsou BERT nebo GPT, patří mezi velké jazykové modely (\textit{Large Language Model}, zkráceně LLM). Mimo sumarizaci a prediktivní generování textu dokáží tyto LLM tvořit vektorové reprezentace textu. Umí zachytit dynamiku vícevýznamových slov tak, že pro různé významy slov generují různé vektorové reprezentace. Zohledňují tak kontext konkrétní věty na základě okolních slov.
+
+\subsubsection{GPT (Generative Pre-Trained Transformer)}
+Příkladem kontextového modelu je GPT, funguje na architektuře transformerů a byl navržen pro generování textu. Predikuje další slovo ve~věte na základě předchozích slov a~kontext slova dokáže zachytit tím, že čte větu jednosměrně zleva doprava. Mimo generování textu však dokáže díky porozumění kontextu vytvářet vektorové repezentace textu~\cite{yenduri2023_gpt_review}.
+
+\subsubsection{BERT (Bidirectional Encoder Representations from Transformers)}
+BERT je předtrénovaný model (převážně na celé anglické Wikipedii), který používá transformery k~zachycení kontextu slova ve~větě, kterou navíc čte oběma směry, zleva doprava i~zprava doleva. Tím dokáže lépe zachytit kontext daného slova a vytvořit pro něj vektorovou reprezentaci~\cite{devlin2018_bert}.
+
+\subsubsection{S-BERT (Sentence-BERT)}
+S-BERT je rozšíření modelu BERT. Oproti předchozím modelům je S-BERT efektivnějším nástrojem pro zpracování textových dokumentů, jelikož optimalizuje tvorbu vektorové reprezentace vět (\textit{sentence embeddings}). Přidává speciální tréninkovou fázi, aby mohl efektivně vytvářet vektory z~celých kusů textu~\cite{reimers2019_sbert}. Toho lze využít ve~vektorových databázích při uložení textových dokumentů a následném vyhledávání pomocí dotazu vektorizovaném tímto modelem.
+
+\section{Systém správy vektorových databází}
+Systém správy vektorových databází je technologie, která práci s~vektorovými databázemi seskupuje dohromady. Je to specializovaný typ systému správy databází zaměřující se na~efektivní správu vysokorozměrných vektorových dat. Toto nezahrnuje nízkorozměrná vektorová data (jako například 2D souřadnice), s~nimiž je práce podstatně jednodušší a nevyžaduje dále uvedené optimalizační techniky. VDBMS (z~anglického \textit{Vector Database Management System}) většinou podporuje vyhledávání na základě podobnosti prostřednictvím indexace, která je nevyhnutelná pro rychlé vyhledávání ve~vektorovém prostoru~\cite{Taipalus_2024}.
+
+Termín vektorová databáze se často používá jako synonymum pro VDBMS. Sama vektorová databáze je však jen soubor dat, zatímco systém správy vektorových databází je celý software. Zajišťuje nejen uložení dat, ale i~efektivní vyhledávání relevantních informací a často si ukládá k~samotnému vektoru i~nějaký identifikátor nebo metadata, která mohou sloužit k~filtrování nebo k~poskytování personalizovaných doporučení~\cite{Taipalus_2024}.
+
+Mezi známé systémy správy vektorových databází patří~\cite{pan2024_vector_dbms}:
+\begin{itemize}
+    \item \textbf{Weaviate} – open-source databáze s~podporou hybridního vyhledávání, která se~zaměřuje na vyhledávání dokumentů v~grafovém modelu,
+    \item \textbf{Pinecone} – proprietární řešení, které je zaměřené na škálování, nabízen jako cloudový systém,
+    \item \textbf{Milvus} – systém podporující vícenásobné indexovací metody a distribuci výpočtů,
+    \item \textbf{Faiss} – knihovna společnosti Meta s~algoritmy pro indexaci a vyhledávání s~vektory,
+    \item \textbf{pgvector} – rozšíření PostgreSQL, které přidává vektor a indexační metody pro vektorové vyhledávání.
+\end{itemize}
+
+
+\section{Indexace a vyhledávání}
+\label{index}
+Po vektorizaci a uložení dat je nad nimi potřeba vytvořit index. Indexace slouží k~organizaci dat pro rychlejší vyhledávání. Vektorové indexy zrychlují proces vyhledávání minimalizací porovnávání vektorů rozdělením vektorového prostoru na datové struktury, které lze snadno procházet. Porovnává se~tak pouze malá podmnožina prostoru k~nalezení nejbližších sousedů~\cite{pan2024_vector_dbms}.
+
+Výběr algoritmu k~indexaci záleží na požadavcích. Obecně bývá výpočetně náročný, v~ideálním případě ho však není třeba při rozšíření datasetu přepočítávat a umožňuje velmi rychlé vyhledávání. Právě proto se bez něho VDBMS neobejdou~\cite{Taipalus_2024}.
+
+Před vyhledáváním je systému podán dotaz, který je často ve~formě přirozeného jazyka, a proto potřebuje být taktéž vektorizován, a to stejným embedding modelem jako vektory uložené v~databázi. Dotazy si obvykle uchovávají metadata k~vyhledávání, jako např. počet nejbližších vektorů k~nalezení~\cite{Taipalus_2024}. Vektor dotazu je tak \uv{zanesen} mezi vektory databáze a probíhá vyhledávání. Jak již bylo zmíněno, vyhledávání ve~vektorových databázích probíhá na základě významové podobnosti, jinak řečeno vzájemné vzdálenosti mezi vektory, jelikož sémanticky blízké vektory jsou i~výpočetně blízko sebe. Proto se tomuto principu říká vyhledání nejbližších sousedů (anglicky \textit{Nearest Neighbor Search}, NNS). Je to \uv{optimalizační problém nalezení bodu v~dané množině, který je nejblíže (= nejpodobnější) danému bodu}~\cite{han2023_vector_database}. Motivace k~zavedení indexů a aproximace výsledků je znázorněna na následující metodě.
+
+\subsection{Naivní metoda}
+Nejjednodušším přístupem k~nalezení nejbližšího vektoru je naivní metoda (v~anglické literatuře se~též používá pojem \textit{brute-force approach}~\cite{han2023_vector_database}, neboli přístup hrubou silou).
+Naivní algoritmus porovnává každý vektor dotazu se~všemi vektory v~databázi na základě zvolené podobnostní metriky. Tento přístup má absolutní úspěšnost pro navrácení požadovaného počtu opravdových nejbližších bodů, avšak je velice neefektivní. Složitost tohoto přístupu je $O(NM)$, kde $N$ je počet vektorů v~databázi a $M$ je jejich dimenze (velikost embeddingu). Při menším počtu nízkodimenzionálních vektorů je tato intuitivní metoda efektivní díky své přesnosti. U vektorových databází však počet dimenzí vektorů roste exponenciálně a~dochází k~poklesu efektivity mnoha algoritmů strojového učení, což popisuje pojem prokletí dimenzionality (z~anglického \textit{curse of dimensionality})~\cite{peng2024_curse_dimensionality}. Počet vektorů uložených v~databázích velkých projektů navíc může dosahovat několika miliard, a proto VDBMS zavádějí aproximaci a indexační metody, které budou popsány v~následujících podkapitolách.
+
+\subsection{Přibližné vyhledávání nejbližšího souseda}
+\label{anns}
+Zatímco metody NNS prohledávají vektorový prostor vyčerpávajícím způsobem porovnáváním vektoru se~všemi ostatními, metody ANNS (z~anglického \textit{Approximate Nearest Neighbor Search}) řeší problém jejich neefektivity na velkém množství vysokodimenziálních vektorů. Na úkor přesnosti vyhledávají nejbližšího souseda pouze přibližně s~určitou přesností, poskytují však velmi výrazný nárůst výkonu umožňující provádění vyhledávání v~řádech tisíců na sekundu. Je třeba u nich optimalizovat volbu parametrů dle specifikací databáze a vyvážit tak poměr mezi výkonem a přesností. Při hledání $k$ nejbližších sousedů se~metody označují jako $k$-ANNS, pro jednoduchost bude toto označení vynecháno (jde o~nastavení parametru, princip zůstává stejný). Výběrem nejpoužívanějších implementací ANNS jsou následující metody a jejich algoritmy.
+
+\subsection{Hashovací metody}
+Při zpracování vysoce dimenzionálních dat staví tyto techniky na transformaci vektorů pomocí hashovacích funkcí na kompaktnější reprezentaci ve~formě hashovacích klíčů. Redukují složitost porovnávání dat a urychlují tak vyhledávání i~díky specifické sadě hashovacích funkcí, které zajišťují, že není třeba prohledávat celou databázi. Příkladem je následující metoda, která při hashování zachovává podobnost mezi daty. \\
+
+\textbf{Locality Sensitive Hashing} (LSH, v~překladu \uv{hashování citlivé na lokalitu}) je algoritmus urychlující přibližné vyhledávání sousedů v~rozsáhlých databázích. Jeho principem je použití sady hashovacích funkcí, které jsou citlivé na lokalitu a zachovávají tak informace o~podobnosti mezi vektory. To znamená, že blízké vektory (podle zvolené metriky) hashuje do stejného \uv{hashovacího koše} s~vyšší pravděpodobností než vektory vzdálené. LSH pro každý vektor aplikuje sadu hashovacích funkcí, které přidělí vektorům hashovací klíče odpovídající jejich lokalitě. Dle těchto klíčů lze určit, do kterého hashovacího koše daný vektor spadá. Při vyhledávání je vektor dotazu zpracován stejným principem, takže lze snadno nalézt kandidáty na nejbližší sousedy ve~stejném hashovacím koši. Jelikož není potřeba prohledat celou databázi, dochází k~výraznému urychlení vyhledávání~\cite{lsh}.
+
+\subsection{Stromové metody}
+Smyslem stromových metod je zmenšit prohledávaný prostor následováním větví stromu, které s~největší pravděpodobností obsahují nejbližší sousedy vektorizovaného dotazu~\cite{han2023_vector_database}. \\
+
+\textbf{Approximate Nearest Neighbors Oh Yeah} (ANNOY) je algoritmus vyvinutý společností Spotify, původně pro doporučování hudby. Pracuje nejefektivněji ve~střednědimenzionálních vektorových prostorech (nižší stovky dimenzí), zatímco při velmi vysoké dimenzionalitě může efektivita klesat. ANNOY funguje na principu náhodných projekcí a využívá stromové struktury k~rozdělení datového prostoru. V každém uzlu stromu je prostor rozdělen na podprostory pomocí náhodně zvolené hyperroviny\footnote{hyperovina je rovina, která dělí vícedimenzionální prostor na dvě části}. Hyperrovina je zvolena na~základě dvou náhodně vybraných bodů, mezi kterými prochází středová rovina, která je od obou stejně vzdálená. Tento proces pokračuje rekurzivně, dokud podprostor neobsahuje dostatečně málo bodů (v~závislosti na parametru). Výsledkem je les binárních stromů, kde každý vektor je přiřazen k~listovému uzlu na základě své polohy vůči hyperrovinám.
+
+Při vyhledávání nejbližších sousedů prochází ANNOY každý strom od kořene k~listovému uzlu, kam připadá vektor dotazu a shromažďuje všechny vektory ve~stejných listových uzlech. Poté vypočítá přesnou vzdálenost mezi dotazovaným vektorem a těmito kandidáty a vrátí nejbližší sousedy. Počet stromů a hloubka stromu lze optimalizovat ke kompromisu rychlosti a přesnosti~\cite{bernardsson2015_annoy, han2023_vector_database}.
+
+
+\subsection{Grafové metody}
+\label{grafove metody}
+Grafové metody poskytují řešení ukládání a vyhledávání vektorů pomocí grafových struktur. Při vytváření indexu přidávají bod po bodu, přičemž je podle algoritmu spojují do grafu pro následný jednoduchý průchod grafem k~přibližnému nalezení nejbližších sousedů. \\
+
+\textbf{Navigable small world} (NSW, v~překladu \uv{Prohledávatelný malý svět}) je algoritmus tvořící graf spojováním vektorů s~jeho nejbližšími sousedy. NSW graf je zkonstruován přidáváním vektorů do prostoru v~náhodném pořadí. Každý přidaný vektor spojí hranou s~určitým počtem nejbližších vektorů (heuristikou nejlepší možnosti je vypočtená vzdálenost mezi vektory), přičemž prohledávání začíná na několika náhodných vstupních bodech a~funguje hladově, tedy může skončit v~lokálním minimu. Výsledný graf se~pak blíží konceptu \textit{malého světa}\footnote{malý svět a šest stupňů odloučení ve~společnosti je myšlenka, že jsou všichni lidé v~průměru 6 sociálních kontaktů od sebe}, jelikož body přidány v~prvotní fázi vytvoří vzdálená spojení mezi výslednými shluky. Výsledkem je až logaritmické prohledávání grafu k~získání přibližných nejbližších sousedů~\cite{malkov2016_hnsw}. \\
+
+\textbf{Hierarchical navigable small world} (HNSW, v~překladu \uv{Hierarchický prohledávatelný malý svět}) je vylepšením algoritmu NSW o~hierarchickou strukturu a představuje jednu z~nejvýkonnějších metod ANNS. Vytváří vícevrstvý graf. Body jsou přidávány od nejvyšší vrstvy, kde je jich nejméně. Jakmile nalezne lokální minimum, pokračuje na nižší úrovni s~daným bodem jako výchozím. Proces se opakuje s~tím, že každá vyšší úroveň obsahuje řádově menší počet uzlů než vrstva nižší. To umožňuje přesvědčivě dosáhnout logaritmické náročnosti, jelikož vyhledávání zprvu udělá \uv{velké kroky}, a jakmile se~dostane na nižší úrovně, blíží se~relevantnějším uzlům představující nejbližší sousedy. V realitě pak nejvyšší vrstvu mohou představovat stovky uzlů z~celkového počtu milionů \cite{malkov2016_hnsw}. \\
+
+\subsection{Kvantizační metody}
+Kvantizační metody jsou techniky používané ke snížení výpočetní složitosti při práci s~vysoce dimenzionálními daty. Kvantizace signálů převádí spojité hodnoty na diskrétní, čímž umožňuje efektivnější ukládání. Kvantizace vektorů pak aproximuje jejich hodnoty na reprezentativní vzorky, čímž dochází k~výrazné kompresi dat. Zároveň z~této aproximace vzniká kvantizační chyba, která je však přijatelným kompromisem přinášejícím nárůst výkonu a~snížení paměťových nároků.~\cite{jegou2011_product_quantization}. \\
+
+\textbf{Product Quantization} (PQ, v~překladu \uv{Kvantizace produktu}) je další z~technik efektivního vyhledávání nejbližších sousedů vysokodimenzionálních prostorů. Hlavní myšlenkou je rozdělit vektorový prostor na menší podprostory a každý z~nich kvantizovat samostatně. Vektory se~tedy rovnoměrně rozdělí na daný počet částí (podprostory). Pro každý podprostor jsou pomocí shlukovacího algoritmu (např. \textit{k-means}) určeny centroidy a zapsány do tzv. kódovací knihy. Vektor, který je následně přidáván do indexu, je rozdělen na podprostory a každý tento podprostor je přiřazen nejbližšímu centroidu. Výsledný záznam v~databázi se~skládá z~identifikátorů centroidů v~kódovací knize každého z~podprostorů~\cite{jegou2011_product_quantization}.
+
+Při vyhledávání je vektor dotazu rozdělen na podprostory a kvantizován stejným způsobem jako vektory uložené v~databázi. Na základě identifikátorů centroidů z~kódovacích knih jsou vybráni kandidáti, jejichž indexy odpovídají nebo se~nejvíce podobají dotazu. Pro~tyto kandidáty lze původní vektory rekonstruovat a následně vypočítat přesné vzdálenosti k~dotazu, což umožňuje nalezení nejbližších sousedů~\cite{jegou2011_product_quantization}.
+
+\section{Využití vektorových databází}
+Vektorové databáze jsou moderním nástrojem pro vyhledávání dat na základě významové podobnosti. Kterákoliv data zakódovaná embedding modely do vektorů lze pak sémanticky vyhledávat, není třeba se~tak omezovat pouze na slova či texty. Ačkoliv je to komplexnější proces, obrázky nebo videa lze taktéž vektorizovat a vyhledávat tak jim podobné. U obrázků se~jedná o~extrakci vlastností jednotlivých pixelů, která se~typicky děje pomocí konvolučních neuronových sítí. Jsou tak zachyceny různé vlastnosti, které jsou převedy do vektorové reprezentace. Podobně může probíhat systém s~videi, kde je například zachyceno několik klíčových snímků. Po vyhledání nejbližších sousedů ve~vektorové databázi je tak možné získat daná data~\cite{Taipalus_2024}.
+
+Tato schopnost je typicky využívána v~doporučovacích systémech, kde na základě získaných dat o~uživatelech jsou systémy schopny nabízet podobný typ produktů nebo obsahu. Pro tuto práci je však nejrelevantnější využití vektorových databází ve~spojení s~velkým jazykovým modelem. 
+
+\subsection{Vektorové databáze a jazykové modely}
+Databáze a velké jazykové modely (LLM) se~nachází každý v~jiné oblasti výzkumu. Specificky vektorové databáze však svými schopnostmi přináší zajímavé využití v~kombinaci s~jazykovými modely, které ilustruje obr.~\ref{fig:vdbandllm}. LLM jsou předtrénované na velkém množství parametrů (v~dnešní době se~jedná o~řády miliard až bilionů), tedy textových dat. Ty poskytují paměť pro jejich prediktivní a generativní schopnosti a jsou významným nástrojem pro~úlohy zpracování přirozeného jazyka. Mohou však produkovat nepřesné výsledky z~důvodu absence aktuálních informací v~době tréninku. Na druhé straně jsou vektorové databáze, které zvládají efektivně ukládat multimodální data (text, obrázky, videa nebo zvuk) pomocí embeddingů. Tato data jsou pak rychle vyhledávána, sama o~sobě však nemusí být uživatelsky přívětivá. Kombinací schopností LLM s~vyhledáním nejbližších sousedů tak vznikají fakticky přesné a uživatelsky přívětivé výsledky~\cite{pan2024_vector_dbms}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{obrazky/vdbandllm.pdf}
+    \caption{Kombinace vektorových databází s~velkým jazykovým modelem vzájemně vyvažuje nedostatky jednotlivých přístupů k~vyhledávání informací. Převzato z~\cite{han2023_vector_database}.}
+    \label{fig:vdbandllm}
+\end{figure}
+
+Vektorové databáze jsou tak schopny vyhledávat dokumenty relevantní k~uživatelskému dotazu a dodávat kontext pro dotazy na generativní modely. Tomuto systému se~říká \textit{Retrieval-Augmented Generation} a zaměřuje se~na něj zbytek této práce.
+
+\chapter{Retrieval-Augmented Generation (RAG)}
+\label{rag}
+V publikaci z~roku 2021 přišli Lewis et. al. \cite{lewis2020_retrieval_augmented_generation} se~systémem alternativním k~čistě parametrizovanému LLM, který by zvýšil přesnost dodávání faktů vyhledáváním informací v~externím zdroji. Generování rozšířené o~vyhledávání (\textit{Retrieval-Augmented Generation}, zkráceně RAG) je systém, kde \uv{předtrénovaný parametrizovaný generativní model je vybavený neparametrickou pamětí prostřednictvím univerzálního přístupu jemného doladění}~\cite{lewis2020_retrieval_augmented_generation}.
+
+\section{Limitace velkých jazykových modelů}
+RAG kombinuje vyhledávací mechanismy s~generativními jazykovými modely pro zvýšení přesnosti výstupů založených na konkrétních faktech. Cílí tak na některé klíčové problémy velkých jazykových modelů.
+
+Většina jich plyne z~faktu, že LLM uchovávají svoji paměť v~parametrech, na kterých byly natrénovány, tedy v~\textit{parametrizované paměti}. Jelikož jsou trénovány na velice rozsáhlém množství dat, dokáží pochytit velké množství znalostí bez využití jakékoliv externí paměti. Jsou též skvělé v~generování lidsky vypadajícího textu. Fungují však na základě pravděpodobnosti slovních sekvencí, nikoliv ověřených faktů. Jsou též omezené na data, která byla přítomna ve~fázi tréninku~\cite{lewis2020_retrieval_augmented_generation, pan2024_retrieval_augmented_generation}. To vede k~určitým limitům:
+
+\begin{itemize}
+    \item \textbf{Halucinace}: LLM mohou produkovat odpověď, která sice působí věrohodně, ale je fakticky nesprávná. Může se tak jednat o~smyšlené, neexistující informace.
+    \item \textbf{Časově omezená znalost}: LLM mají svůj \textit{cut-off date}, tedy datum, kde končí jejich znalosti, typicky datum před trénováním. To vede k~tomu, že nemají přístup k~aktuálním informacím a jejich znalosti nelze snadno doplnit.
+    \item \textbf{Znalosti specifických domén}: LLM jsou typicky obecné modely, a tak jim mohou scházet informace ke specifickým oblastem.
+    \item \textbf{Citace}: LLM poskytují své odpovědi bez uvedení zdrojů, to snižuje důvěryhodnost a možnosti použití.
+    \item \textbf{Soukromá data}: LLM jako obecné modely jsou trénované na veřejně dostupných datech a nemají přístup k~soukromým či proprietárním datům.
+\end{itemize}
+
+RAG se snaží adresovat tyto problémy přidáním vyhledávacího modulu, který staví na neparametrické paměti~\cite{lewis2020_retrieval_augmented_generation}. Ta je schopná snadno aktualizovat bázi znalostí, vyhledávat je v~reálném čase a poskytovat tak relevantní kontext jako vstup jazykovému modelu společně s~uživatelským dotazem. Odpověď je pak srozumitelná, uživatelsky přívětivá a podložena konkrétními dokumenty, které dané fakty uvádějí. Pakliže kontext není dostatečný, je žádoucí, aby toto bylo řečeno v~odpovědi, a je tak vynucena absence smyšlených informací. Báze znalostí pak staví na poskytnutých informacích, které mohou pokrývat specifickou doménu nebo privátní data.
+
+\section{Architektura RAG}
+Vstupem systému je uživatelův dotaz. Dále RAG kombinuje dvě klíčové komponenty. První je \textit{retriever}, mechanismus vyhledávání informací v~externím úložišti znalostí. Na základě dotazu vyhledává nejrelevantnější informace, které potenciálně obsahují odpověď. Sada vrácených informací z~dokumentů pak tvoří kontext. Ten je společně s~uživatelským dotazem formulován jako vstup \textit{generátoru}, který poskytuje uživateli odpověď.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{obrazky/rag.pdf}
+    \caption{Diagram komponent architektury RAG. Odpověď na dotaz je generována na základě vyhledaných informací v~externích znalostech.}
+    \label{fig:komponenty}
+\end{figure}
+
+\subsection{Retriever}
+Retriever je klíčovým modulem systému, který slouží jako nadstavba generátoru a tvoří základ principu Retrieval-Augmented Generation. Jeho hlavním cílem je identifikace relevantních dokumentů nebo jejich částí, které následně slouží jako kontext pro generativní model. Aby systém fungoval v~reálném čase, musí retriever poskytovat výsledky s~nízkou latencí, což vyžaduje efektivní indexaci dat (viz kap.~\ref{index}) v~předzpracovací fázi, tedy vhodnou organizaci dokumentů. Optimalizované algoritmy indexace pak umožňují rychlé vyhledávání i~nad rozsáhlými datovými sadami.
+
+Vyhledávání v~retrieveru je typicky realizováno pomocí řídkých (\textit{sparse}) nebo hustých (\textit{dense}) vektorových reprezentací. \newpage
+
+\textbf{Řídké vektory} mají vysokou dimenzionalitu a obsahují převážně nulové složky, přičemž nenulové hodnoty obvykle reprezentují váhu nebo frekvenci výskytu termínů v~dokumentu. Jsou založeny na metodách tradičního vyhledávání informací pomocí klíčových slov, kde podobnost závisí na přesné shodě termínů. Nejpoužívanějšími metodami jsou:
+\begin{itemize}
+    \item \textbf{TF-IDF} (\textit{Term Frequency–Inverse Document Frequency}), která vyjadřuje důležitost slova na základě jeho četnosti výskytu v~dokumentu~\cite{buttcher2010information},
+    \item \textbf{BM25} (\textit{Best Match 25}), pravděpodobnostní model relevance, který kombinuje frekvenci výskytu slov a normalizaci délky dokumentu k~odhadu skóre relevance mezi dotazem a dokumenty. Jedná se~o~jeden z~nejrozšířenějších algoritmů pro fulltextové vyhledávání \cite{robertson2009bm25}.
+\end{itemize}
+
+\textbf{Husté vektory} naproti tomu většinou nulové složky neobsahují a využívají neuronové sítě k~mapování dotazů a dokumentů do vektorového prostoru s~nižší dimenzionalitou. Takové vektory pak dokáží zachytit i~sémantické podobnosti (pomocí nejbližších sousedů) namísto přesné shody termínů, dosahují tak mnohem vyšší výkonnosti než fulltextové metody, jsou však výpočetně náročnější a vyžadují embedding modely. Modelem této kategorie pak je \textbf{DPR} (\textit{Dense Passage Retriever}), který používá dva nezávislé transformátorové enkodéry BERT pro mapování dotazu a dokumentu po částech do hustého vektorového prostoru, kde probíhá sémantické vyhledávání porovnáváním dotazu s~pasážemi pomocí skalárního součinu~\cite{karpukhin2020dense}.
+
+\subsection{Generátor}
+Generativní modul na základě kontextu z~navrácených informací a vstupního dotazu produkuje odpovědi ve~formě přirozeného jazyka. K tomuto úkolu lze využít kterýkoliv model architektury enkodér-dekodér používané v~\textit{seq2seq} transformerových modelech~\cite{murel2024encoderdecoder}. Tento modul je však obvykle implementován pomocí velkého jazykového modelu (LLM). Nejčastěji se~využívají transformerové modely jako GPT~\cite{yenduri2023_gpt_review}, které dosahují nejlepších výsledků v~generování přirozeného jazyka.
+
+\subsection{Vylepšení}
+Zhao P. et al. ve~své práci~\cite{zhao2024rag} navrhují metody k~optimalizaci výsledků pro jednotlivé části RAG, které mohou vést k~lepší přesnosti vyhledávání a zlepšení kvality generovaných výsledků. Mezi ty nejpodstatnější v~jednotlivých oblastech patří:
+
+\begin{enumerate}
+    \item \textbf{Vstup}: vstupem je uživatelský dotaz a ten ovlivňuje kvalitu výsledku vyhledávání.
+    \begin{itemize}
+        \item \textbf{Transformace dotazu} – transformace dotazu do optimalizované podoby pro vyhledávání (např. dekompozice komplexního dotazu do více poddotazů).
+        \item \textbf{Rozšíření dat} – odstranění nerelevantních informací, dynamická aktualizace dokumentů a přidávání nových.
+    \end{itemize}
+    
+    \item \textbf{Retriever}: kvalita odpovědi v~RAG systémech závisí na relevanci vyhledaných informací, které jsou následně podány generátoru, ale také na kvalitě externích dat.
+    \begin{itemize}
+        \item \textbf{Rekurzivní vyhledávání} – vícenásobné vyhledávání pro zpřesnění nalezeného kontextu.
+        \item \textbf{Optimalizace chunkování} – optimalizace velikosti chunků (menších částí dokumentu) pro efektivnější vyhledávání.
+        \item \textbf{Doladění retrieveru} – retriever spoléhá na embedding model, který vytváří vektorové reprezentace dat. Kvalitu embedding modelu lze doladit pro specifické oblasti informací ke zlepšení sémantického vyhledávání.
+        \item \textbf{Hybridní vyhledávání} – použití různých metod vyhledávání (např. kombinace vektorového a fulltextového vyhledávání) nebo získávání informací z~více různých zdrojů.
+        \item \textbf{Re-ranking} – změna pořadí nalezených dokumentů na základě přezkoumání relevance.
+        \item \textbf{Filtrování metadaty} – filtrování dokumentů na základě metadat.
+    \end{itemize}
+    
+    \item \textbf{Generátor}: kvalita výstupní odpovědi závisí na generátoru při zpracování vstupního kontextu s~dotazem.
+    \begin{itemize}
+        \item \textbf{Prompt engineering} – optimalizace vstupních instrukcí a integrace s~navrácenými informacemi.
+        \item \textbf{Doladění generátoru} – ladění parametrů generativního modelu pro zvýšení kvality odpovědí.
+    \end{itemize}
+
+    \item \textbf{Výstup}: zlepšení celého procesu RAG produkujícího výsledek pak spočívá v~identifikaci případů, zdali se~vyhledáním skutečně dojde k~lepšímu výsledku. Může se~stát, že navrácený kontext je pro dotaz nedostatečný. V takových případech je třeba předat zodpovědnost zpět generativnímu modelu, nebo ho v~rámci prevence halucinací instruovat, aby neodpovídal bez informací, které by odpověď podložily.
+\end{enumerate}
+
+\section{Evaluace RAG systémů}
+\label{evaluaceteorie}
+
+Hodnocení kvality RAG systémů není jednoduchý proces kvůli jejich vícevrstvé architektuře a závislosti na externích zdrojích informací. Další komplikací při evaluaci RAG systémů je skutečnost, že generativní model (LLM) zde funguje jako \textit{black-box}. Výsledky, jež produkuje, nemusí být plně transparentní a deterministické. Vyhledávání navíc přímo ovlivňuje kvalitu odpovědí generativního modulu, proto je potřeba testovat jak samostatné moduly, tak RAG jako celek. Pro praktické využití RAG systémů tyto skutečnosti pozdvihují důležitost zavedení automatických vyhodnocovacích postupů, metrik a testovacích sad, které adresují reálné případy použití~\cite{yu2025evaluationrag}.
+
+\subsection{Jednotný proces hodnocení}
+V průzkumu nástrojů a benchmarků na evaluaci RAG systémů navrhli Yu et. al.~\cite{yu2025evaluationrag} jednotný proces hodnocení Auepora (A Unified Evaluation Process of RAG), který pomáhá pochopit složitost srovnávacího hodnocení RAG a vychází z~něj tato podkapitola. Auepora je zaměřena na zodpovězení tří klíčových otázek:
+\begin{enumerate}
+    \item Co hodnotit?
+    \item Jak to hodnotit?
+    \item Jak to měřit?
+\end{enumerate}
+
+\subsubsection{Cíl hodnocení}
+\label{targets}
+Základ tvoří 5 cílů hodnocení, které testují jednotlivé vlastnosti RAG systémů. Definují je kombinace výsledků a referenčních základních pravd (tzv. \textit{ground truths}), které jsou předem dané. Určují tak požadavky na RAG systémy.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{obrazky/target.pdf}
+    \caption{Diagram možností, které vytváří cíle hodnocení. Převzato z~\cite{yu2025evaluationrag}.}
+    \label{fig:targets}
+\end{figure}
+
+\begin{enumerate}
+    \item Vyhledávání
+    \begin{itemize}
+        \item \textbf{Relevance} – určuje, jak dobře vyhledané dokumenty odpovídají vstupnímu dotazu. Cílem je zjistit, zdali systém vyhledává dokumenty obsahující potřebné informace. 
+        \item \textbf{Přesnost} – porovnává vyhledané dokumenty se~sbírkou určených kandidátních dokumentů a tím měří schopnost systému identifikovat relevantní dokumenty včetně jejich prioritizace před méně relevantními.
+    \end{itemize}
+    \item Generování
+    \begin{itemize}
+        \item \textbf{Relevance} – určuje míru relevance výstupní odpovědi k~dotazu, tedy nakolik je vygenerovaná odpověď v~souladu se~záměrem a obsahem původního dotazu. Zajišťuje, že odpověď souvisí s~tématem dotazu a splňuje jeho specifické požadavky.
+        \item \textbf{Věrnost} – hodnotí, zda odpověď vychází z~informací obsažených v~kontextu z~vyhledaných dokumentů.
+        \item \textbf{Správnost} – měří přesnost mezi vygenerovanou odpovědí a odpovědí referenční, která obsahuje ověřené pravdivé tvrzení. Tím je možno pozorovat, zdali je systém schopen dodávat fakticky správné odpovědi mířené na kontext dotazu.
+    \end{itemize}
+    \item Další požadavky
+    \begin{itemize}
+        \item \textbf{Latence} – rychlost vyhledávání a produkce odpovědi, která je nezbytná pro uživatele komunikujícího se~systémem.
+    \end{itemize}
+    Zbylé tři požadavky vychází z~benchmarku RGB (Retrieval-Augmented Generation Benchmark)~\cite{chen2023benchmarkinglargelanguagemodels}:
+    \begin{itemize}
+        \item \textbf{Odolnost proti šumu} – šum představují dokumenty relevantní otázce, avšak neobsahující správnou odpověď.
+        \item \textbf{Odmítnutí} – aby se~předešlo halucinacím LLM, RAG by měl odmítnout odpovědět, pakliže obdržený kontext není dostatečný k~poskytnutí odpovědi.
+        \item \textbf{Odolnosti vůči protichůdným informacím} – generátor by měl identifikovat protichůdná fakta ve~vyhledaných dokumentech.
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Soubor dat k~evaluaci}
+K vytváření testovacích případů k~hodnocení RAG systémů je klíčový výběr vhodného souboru dat. V popisech některých existujících benchmarků jsou využívané specifické datasety, obecně je však vhodné použít např. index Wikipedie díky její rozmanitosti témat a rozsáhlosti článků. Ověřeným přístupem je také využití sady zpráv o~aktualitách. Taková data představují informace, na kterých jazykové modely nebyly trénovány, a zodpovědnost tak je plně na vyhledávacím modulu~\cite{yu2025evaluationrag}.
+
+\subsubsection{Metriky hodnocení}
+Cíle hodnocení uvádí požadavky na systém. Vytvoření hodnotících kritérií, která by odpovídala lidským preferencím a řešila praktické otázky, je náročné. Existuje však již několik evaluačních frameworků, které implementují řadu metrik, díky kterým je hodnocení měřitelné.
+
+Hodnocení samotných výsledků není vždy deterministické, protože některé metriky, jako například relevance odpovědi k~dotazu či věrnost vůči zdrojovým dokumentům, mohou mít subjektivní charakter a závisí na interpretaci hodnotitele. Manuální hodnocení je však časově náročné a často subjektivní. Moderním přístupem k~automatizované evaluaci je koncept \textit{LLM-as-a-Judge}~\cite{li2024llmsasjudgescomprehensivesurveyllmbased}, kde je jazykový model instruován k~ohodnocení relevance, věrnosti či kvality na bodové škále. Tento přístup využívá framework popsaný v~následující podkapitole, který byl zároveň využit k~evaluaci implementovaného RAG systému této práce v kap.~\ref{ragas_eval}. 
+
+\subsection{RAGAs: Automatizovaná evaluace RAG systémů}
+\label{ragastheory}
+Systém RAGAs (\textit{Retrieval Augmented Generation Assessment})~\cite{es2023ragasautomatedevaluationretrieval} předkládá soubor metrik, které lze použít k~automatizovanému hodnocení RAG systémů bez nutnosti lidské anotace (poskytnutí referenčních odpovědí). Zároveň využívá vhodné instruování LLM k~dělání rozhodnutí, na základě kterých je vypočítáno skóre a vyčísleno od 0 do 1. Níže uvedené metriky vychází z~cílů hodnocení uvedených v~kapitole~\ref{targets}. Es et. al.~\cite{es2023ragasautomatedevaluationretrieval} pak experimenty dokázali, že pomocí frameworku je dosaženo hodnocení více se~shodujícího s~hodnocením lidmi, nežli ohodnocení čistě pomocí jazykového modelu.
+
+\subsubsection{Věrnost}
+Odpověď je věrná kontextu, pakliže tvrzení uvedená v~odpovědi lze odvodit z~kontextu. Výstupní odpověď je tak pomocí jazykového modelu rozdělena na jednotlivá tvrzení, kde každé je následně ohodnoceno, zdali souvisí s~kontextem.
+
+Výsledné skóre $F$ je vypočteno jako
+\begin{equation}
+    F = \frac{V}{S}, 
+\end{equation}
+kde $V$ je počet výroků označených LLM jako podložené kontextem a $S$ je celkový počet tvrzení.
+
+\subsubsection{Relevance odpovědi}
+Odpověď je relevantní, pakliže se~vztahuje ke vstupní otázce. Vygenerovaná odpověď zde slouží jako vstup jazykovému modelu, který generuje otázky k~dané odpovědi. Otázky jsou pak embedding modelem převedeny na vektory a je vypočtena vzájemná podobnost mezi původní otázkou a těmi vygenerovanými.
+
+Výsledné skóre $AR$ je vypočteno jako 
+\begin{equation}
+    AR = \frac{1}{n} \sum_{i=1}^{n} \operatorname{sim}(q, q_i),
+\end{equation}
+kde $\operatorname{sim}(q, q_i)$ je kosinová podobnost mezi původní a vygenerovanou otázkou a $n$ je počet vygenerovaných otázek.
+
+
+\subsubsection{Relevance kontextu}
+Kontext je relevantní, pakliže obsahuje informace potřebné k~zodpovězení dotazu. Z~kontextu jsou pomocí LLM extrahovány věty, které jsou relevantní k~dotazu. Výsledné skóre je vypočteno jako poměr počtu extrahovaných vět k celkovému počtu vět v~kontextu.
+
+\section{Aplikace}
+RAG nachází uplatnění tam, kde je třeba poskytovat odpovědi založené na rozsáhlých datech, která nejsou součástí tréninkové sady jazykového modelu. V této sekci jsou popsány praktické scénáře využití RAG.
+
+\subsection{Open-Domain Question Answering (OpenQA)}
+RAG je často využíván v~tzv. \textit{Open-Domain Question Answering}, kde je cílem zodpovědět dotaz pomocí rozsáhlé báze znalostí (např. Wikipedie). RAG je tak pro LLM tím, čím je pro studenty tzv. \textit{open-book} zkouška. Při této zkoušce si studenti mohou přinést referenční materiály, jako jsou učebnice nebo poznámky, které mohou použít pro vyhledání informací k~zodpovězení otázky a namísto jejich schopnosti memorizace jsou tak testovány jejich uvažovací schopnosti~\cite{rag_openQA}. Stejně tak se~RAG zaměřuje na schopnost dynamicky získávat aktuální informace, což zlepšuje faktickou správnost odpovědí, které jsou navíc důvěryhodné a transparentní díky podložení zdroji. 
+
+\subsection{Doménově specifické systémy}
+Další aplikací je vyhledávání v~doménově specifických dokumentech. Může jít o~interní firemní dokumentaci, manuály, právní předpisy nebo vědecké články. V těchto scénářích je RAG využíván k~získávání odpovědí v~oblastech, kde LLM selhávají kvůli neznalosti informací, které se~od jejich tréninku změnily nebo ani nemohly být přítomny (např. proprietární data).
+
+
+%------------------------------------------------------------------------------------------------
+%------------------------------------------------------------------------------------------------
+%------------------------------------------------------------------------------------------------
+
+\chapter{Architektura systému}
+\label{navrh}
+Předchozí kapitoly shrnují dosažený vědecký pokrok v~oblastech vektorových databází a~Retrieval-Augmented Generation. Slouží tak jako teoretický základ, který vytvořil kontext pro použití těchto technologií k~návrhu a implementaci vlastního systému na zpracování a~vyhledávání dokumentů. 
+
+Tato kapitola si dává za cíl představit architekturu systému, který vznikl v~rámci této práce. Principem vychází z~přístupu RAG. Hlavní myšlenkou je dotazování systému, který odpovídá na otázky pomocí externího zdroje informací (na bázi Q\&A). Zdroj informací zde představují textové dokumenty propojené se~systémem, které jsou uložené ve~vektorové databázi. Jedná se~tak o~vyhledávání nad těmito dokumenty, přičemž otázka je podána přirozeným jazykem a odpověď je uživatelsky přívětivá, podložená fakty s~odkazy na zdroje informací. Využití systému není nijak limitováno, záleží pouze na tom, jaká data na textové bázi má systém k~dispozici.
+
+Systém je navrhnut tak, aby optimalizoval přesnost vyhledávání, která je nutná pro formulaci správné odpovědi generátorem. Vyhledávání informací z~dokumentů je cílové použití, jedná se~však až o~druhou fázi. První fází systému je zpracování dokumentů a jejich uložení do databáze. 
+
+
+\section{Zpracování dokumentů}
+\label{zpracovani}
+Prvním procesem je zpracování dokumentů. Vstupem je dokument, který je konvertován na prostý text. Ačkoliv byl systém testován především na textových dokumentech, podporovanými typy souborů jsou \texttt{.txt}, \texttt{.doc}, \texttt{.docx}, \texttt{.pdf}, \texttt{.jpg}, \texttt{.png} a \texttt{.heic}. Na binární soubory, jako jsou obrázky a PDF dokumenty, se~aplikuje OCR (optické rozpoznávání znaků) k~extrakci textu. Extrahovaný text prochází předzpracováním, které zahrnuje čištění textu a případnou detekci nadpisů. Dále je rozdělen na tzv. chunky, které představují kratší pasáže textu. To vše je úkol modulu \texttt{DocumentProcessor}. 
+
+
+Každý chunk je obohacen o~metadata zahrnující informace o~dokumentu, ze kterého textová pasáž pochází, a pro snadnější lokalizaci i~ve které sekci nebo na které straně se~nachází. Dále obsahuje údaje o~přístupových právech k~dokumentu, které umožňují filtrování. 
+
+Jakmile jsou dokumenty rozděleny na chunky a obohaceny o~metadata, dalším krokem je jejich vektorizace. Text každého chunku je převeden do vektorové reprezentace pomocí embedding modelu. Ty jsou přidány k~chunkům, které se~ukládájí do vektorové databáze.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{obrazky/processing.pdf}
+    \caption{Diagram zpracování dokumentu až po jeho uložení do databáze}
+    \label{fig:zpracovani}
+\end{figure}
+
+\subsection{Chunking}
+\label{chunking}
+Chunking je proces dělení textu na sekce velikostně optimalizované pro zpracování jazykovými modely a zachycení kontextu. Zatímco dokumenty jsou většinou příliš velké a zahrnují široký, mnohdy různorodý kontext, chunking dělí dokumenty na logické sekce zachycující jeden kontext, které jsou navíc velikostně přizpůsobené vektorizaci embedding modelem, který má svůj limit.
+
+Strategie chunkingu se~dělí podle komplexnosti. Naivním přístupem je dělení textu na bloky o~fixní délce, to však může rozdělit jeden kontext do více pasáží, navíc i~uprostřed slova. Rekurzivní přístup pak dělí text podle struktury (odstavce, nadpisy, věty) a dodržuje limit velikosti chunku.
+
+Metoda, kterou systém implementuje, se~snaží co nejvíce zachovat kontext a strukturu textu, přičemž velikost chunku omezuje vstupní limit embedding modelu. Ten je počítán v~tokenech, a proto i~text je tokenizérem příslušného embedding modelu přepočítáván na tokeny. Na obrázku~\ref{fig:tokenizer} je zobrazen princip tokenizace\footnote{nástroj na vizualizaci tokenizace je dostupný na \url{https://gpt-tokenizer.dev/}}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{obrazky/tokens.jpg}
+    \caption{Vizualizace tokenizace}
+    \label{fig:tokenizer}
+\end{figure}
+
+Dokument je rozdělen na jednotlivé věty, které jsou přidávány do chunku. Pakliže by počet tokenů ve~větě přesáhl limit chunku, aktuální chunk se~uzavře a věta je přidána do nového chunku společně s~poslední větou předchozího chunku. Tím dochází k~překryvu, který zabraňuje ztrátě kontextu mezi sousedními částmi textu. Nadpisy pak vždy tvoří počátek nového chunku, protože označují začátek nového logického celku.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{obrazky/chunking.pdf}
+    \caption{Chunking}
+    \label{fig:chunking}
+\end{figure}
+
+
+\section{Vyhledávání dokumentů}
+\label{vyhledavani}
+Vyhledávání dokumentů pro vytvoření kontextu a poskytnutí odpovědi formulované jazykovým modelem je hlavním případem užití systému. Může k němu dojít, jakmile vektorová databáze obsahuje zpracovaná data, která slouží jako báze znalostí.
+
+Dotaz uživatele je přeformulován do podoby optimalizované pro vyhledávání. Přeformulovaný dotaz je použit pro hybridní vyhledávání, které navrací relevantní chunky. Ty jsou seřazeny dle skóre vyhledávání, jejich pořadí a relevance je však upřesněna pomocí modulu \texttt{Reranker}. Tyto chunky pak slouží jako kontext pro jazykový model, který pomocí něj zodpovídá dotaz uživatele.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{obrazky/retrieval.pdf}
+    \caption{Diagram komponent vyhledávání dokumentů a generování odpovědi}
+    \label{fig:retrieval}
+\end{figure}
+
+\subsection{Přeformulování dotazu}
+Modul \texttt{Rewriter} má v~systému dva módy. První slouží k~optimalizaci dotazů pro vyhledávání. Uživatelé často formulují své dotazy neefektivně tím, že používají nadbytečná nebo vycpávková slova. Při zadávání dotazu uživatelem přes klávesnici navíc může dojít k~překlepům, které by mohly negativně ovlivnit výsledek vyhledávání. Tento modul využívá jazykový model a vhodně ho instruuje k~přeformulování dotazu do stručnější a informativnější podoby, aniž by změnil jeho původní význam.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{obrazky/rewriting.pdf}
+    \caption{Příklad uživatelského vstupu (nahoře), který je pro vyhledávání přeformulován na dotaz \uv{capital of Belgium}, a odpovědi}
+    \label{fig:rewriting}
+\end{figure}
+
+Klade si tak za cíl zpřesnit obě složky hybridního vyhledávání. U fulltextového vyhledávání je dotaz omezen na relevantní slova a u sémantického vyhledávání vede zjednodušený dotaz k~lepší vektorové reprezentaci, která přesněji odpovídá uloženým embeddingům a eliminuje zkreslení způsobené nadbytečnými slovy.
+
+Vhodně formulované dotazy pak ponechává beze změny. V případě nesmyslných nebo nejednoznačných dotazů k~přeformulování také nedochází, aby nebyly ovlivněny další fáze vyhledávání, které s~těmito případy počítají.
+
+\subsection{Chatová historie}
+Druhým módem modulu \texttt{Rewriter} je podpora chatové historie a navazujících otázek. Při zadání neúplného dotazu, který se~odkazuje k~předešlým otázkám a odpovědím, je tento dotaz s~pomocí tří posledních párů dotaz–odpověď přeformulován jazykovým modelem do kompletní podoby.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{obrazky/chathistory.pdf}
+    \caption{Příklad navazující otázky \uv{and germany?}, která je pro vyhledávání i~výsledný prompt generátoru přeformulována na dotaz \uv{What is the capital of Germany?}}
+    \label{fig:rewriting}
+\end{figure}
+
+Tento mód přináší novou funkcionalitu, pozorováním však bylo zjištěno celkové snížení výkonu systému, jelikož se efektivita tohoto módu projevuje pouze u navazujících dotazů, které potřebují být obohaceny. Při úplných dotazech, které první mód zjednodušuje, může u tohoto módu dojít k~mírnému přeformulování dotazu a následné nekonzistenci mezi otázkou a odpovědí. Generátor totiž odpovídá na přeformulovaný dotaz, zatímco rewriting bez chatové historie slouží pouze pro vyhledávání.
+
+\subsection{Hybridní vyhledávání}
+\label{hybrid}
+Hybridní vyhledávání kombinuje fulltextové a vektorové vyhledávání k~využití obou metod pro přesnější výsledky. Motivací tohoto přístupu je fakt, že dotazy bývají různorodě zaměřené. 
+\begin{itemize}
+    \item \textbf{Fulltextové vyhledávání} je přesné při hledání konkrétních klíčových slov. Pokud ale uživatel použije synonyma nebo volnější formulaci dotazu, bývá nepřesné. Vstupem fulltextovému vyhledávání je přeformulovaný dotaz.
+    \item \textbf{Vektorové vyhledávání} dokáže najít sémanticky podobné výsledky i~při odlišné formulaci, ale nemusí vždy zaručit, že nalezené dokumenty obsahují specifická klíčová slova, což může vést k~nižší přesnosti u některých dotazů. Vstupem vektorovému vyhledávání je vektorová reprezentace přeformulovaného dotazu, vytvořená stejným embedding modelem, který byl použit ke zpracování dokumentů.
+\end{itemize}
+Hybridní vyhledávání využívá parametr $\alpha$, který určuje váhu mezi fulltextovým a vektorovým vyhledáváním. Je vyčíslen hodnotou $\alpha \in \langle 0, 1 \rangle$, kde $0$ se přiklání fulltextovému vyhledávání a $1$ vektorovému. 
+Výsledné skóre hybridního vyhledávání je pak vypočteno jako vážený průměr normalizovaných hodnot skóre jednotlivých vyhledávání:
+
+\begin{equation}
+    s = \alpha \cdot \frac{s_{\text{v}} - \min(s_{\text{v}})}{\max(s_{\text{v}}) - \min(s_{\text{v}})} + (1 - \alpha) \cdot \frac{s_{\text{t}} - \min(s_{\text{t}})}{\max(s_{\text{t}}) - \min(s_{\text{t}})},
+\end{equation}
+
+\noindent kde $s_{\text{t}}$ je skóre fulltextového vyhledávání (např. BM25) a $s_{\text{v}}$ je skóre vektorového vyhledávání, které může být založeno např. na kosinové podobnosti nebo Euklidovské vzdálenosti.
+
+\subsection{Reranking}
+Tato část vychází převážně ze zdroje \cite{reranking}, kde je proces vyhledávání označen za dvoufázový, protože důležitým krokem po hybridním vyhledávání je tzv. \textit{reranking}. Jedná se~o~proces přeuspořádání či zpřesnění výsledků původního vyhledávání podle míry relevance k~dotazu uživatele.
+
+Samotné vyhledávání často upřednostňuje rychlost před přesností, jelikož probíhá nad rozsáhlým množstvím dat (viz ANNS~\ref{anns}). V této fázi se~typicky využívá architektura \textit{Bi-encoder}, kde jsou dotaz a dokument zakódovány odděleně a jejich relevance je určena pomocí podobnostní funkce. Tento přístup je rychlý, ale může u něho docházet ke ztrátě sémantických detailů. Jeho výsledkem je pevně daný počet nejrelevantnějších chunků.
+
+Reranking využívá předtrénovaný model typu \textit{Cross-encoder}, který dotaz a jednotlivé chunky zpracovává společně jako jeden vstup a dokáže tak detailněji zachytit jejich sémantickou souvislost. Každé dvojici dotaz–chunk je přiřazeno skóre relevance, podle kterého jsou výsledky seřazeny. Zároveň provádí filtr tím, že informace s~nedostatečnou mírou relevance z~kontextu odstraní. Vzhledem k~vyšší výpočetní náročnosti se~reranking aplikuje pouze na omezený počet chunků, právě proto následuje samotnému vyhledávání.
+
+Výsledkem by měla být vyšší kvalita odpovědi generované jazykovým modelem, protože se~do promptu dostávají pouze skutečně relevantní informace a LLM tak není zahlceno přebytečnými informacemi.
+
+\subsection{Prompt Engineering}
+Posledním krokem před samotným generováním odpovědi jazykovým modelem je návrh promptu, který pak slouží jako jeho vstup. Cílem \textit{prompt engineeringu} je navrhnout takový vstup, který co nejlépe instruuje model ke správné odpovědi dodržující zamýšlený formát.
+
+Návrh promptů v~RAG systémech je zásadní, jelikož model nesmí odpovídat na základě natrénovaných dat, ale musí kombinovat dotaz s~poskytnutým kontextem. Dle dokumentace OpenAI~\cite{openaidocs} patří mezi základní principy prompt engineeringu:
+\begin{itemize}
+    \item \textbf{Využití rolí} – při jednom volání lze využít více zpráv různé priority, konkrétně \texttt{developer} zpráva typicky obsahuje instrukce a pravidla a má vyšší prioritu, \texttt{user} zpráva pak obsahuje vstup, na který jsou pravidla uplatněna.
+    
+    \item \textbf{Formátování a struktura promptu} – pomocí Markdown formátování a XML tagů lze pomoci modelu s~pochopením instrukcí a logicky strukturovat prompt. Struktura promptu pak obecně bývá členěna do sekcí v~následujícím pořadí: identita, instrukce, příklady a kontext.
+    
+    \item \textbf{Identita} – nastavení identity (mimo samotné instrukce) poskytuje modelu rámec chování a stylu odpovědi, říká mu, jaká je jeho role.
+
+    \item \textbf{Few-shot learning} – tato metoda poskytuje v~promptu pár ukázkových příkladů vstup–výstup, ze kterých si model implicitně vyvodí požadované chování. 
+
+    \item \textbf{Kontext} – poskytnutí kontextu s~relevantními informacemi k~zodpovězení dotazu je celý princip Retrieval-Augmented Generation.
+\end{itemize}
+
+Prompty mají předdefinované instrukce a následně jsou tvořeny a formátovány dynamicky v~kódu na základě dotazu a vyhledaného kontextu. Použité prompty v~systému jsou uvedeny v~kapitolách~\ref{rewriter} a \ref{llmwrapper}.
+
+\section{Integrace komponent}
+Předchozí podkapitoly uvedly princip dvou hlavních fází systému:
+\begin{enumerate}
+    \item \textbf{Zpracování}, kde vstupem je textový dokument, který je zpracován a uložen do vektorové databáze.
+    \item \textbf{Vyhledávání}, kde vstupem je dotaz uživatele a výstupem je odpověď formulovaná LLM pomocí vyhledaného kontextu.
+\end{enumerate}
+Tyto fáze se~mohou neustále opakovat a společně s~integrací cloudového úložiště a webového uživatelského rozhraní tvoří celou architekturu systému. Jednotlivé komponenty lze pak rozdělit podle jejich funkční odpovědnosti na třívrstvou architekturu znázorněnou na obrázku~\ref{fig:three-tier}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{obrazky/threetier.pdf}
+    \caption{Třívrstvá architektura systému}
+    \label{fig:three-tier}
+\end{figure}
+
+\subsection{Synchronizace s~cloudovým úložištěm}
+
+Součástí systému je integrace s~cloudovým úložištěm, které slouží pro správu dokumentů tvořících bázi znalostí. Uživatel může dokumenty nahrávat, upravovat nebo mazat ve~vyhrazené složce v~prostředí cloudové služby, kterou si se~systémem propojí. 
+
+Tato složka je systémem monitorována. Jakmile se~její stav změní, systém je o~tom prostřednictvím API cloudové služby notifikován a zahajuje synchronizační rutinu, která obnáší detekci změn a zajištění jejich promítnutí do databáze.
+
+Při detekci nového dokumentu je tento dokument stažen a prochází fází zpracování. V případě smazání dokumentu jsou příslušné chunky z~databáze odstraněny a při detekci změn v~již nahraném dokumentu dochází ke kombinaci těchto procesů, tedy smazání a znovuzpracování.
+
+Tímto způsobem je zajištěno, že znalostní báze systému vždy reflektuje aktuální stav cloudového úložiště automatickou synchronizací.
+
+\subsection{Tok dat v~systému}
+
+Na obrázku~\ref{fig:flow} je znázorněna celková architektura systému, vzájemné propojení všech komponent a tok dat mezi nimi. Červené šipky označují tok dat ve~spojení synchronizace cloudového úložiště, které nahraje dokumenty, které podléhají procesu zpracování popsaného v~kap.~\ref{zpracovani}. Modré šipky značí proces vyhledávání dokumentů a poskytnutí odpovědi na dotaz z~kap.~\ref{vyhledavani}.
+
+%% todo fulltext
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{obrazky/system.pdf}
+    \caption{Schéma komponent znázorňující tok dat mezi jednotlivými moduly systému. Červené šipky označují proces nahrání dokumentů z~cloudového úložiště, zpracování a uložení do vektorové databáze. Modré šipky představují proces mezi dotazem uživatele až po zobrazení odpovědi systémem v~uživatelském rozhraní.}
+    \label{fig:flow}
+\end{figure}
+
+\section{Využití}
+Systém byl navržen pro vyhledávání nad interními textovými dokumenty firem. Pro účely testování byl použit dataset článků Wikipedie, a tak využití systému je obecné a přímo závisí na poskytnutých datech tvořících znalostní bázi. Pakliže dokumenty následují předpovídatelný formát, fázi zpracování je možné doladit konkrétnímu použití, avšak navržena byla pro univerzální použití.
+
+
+\chapter{Implementace}
+\label{implementace}
+Tato kapitola se~věnuje technické realizaci systému navrženého v~předchozí kapitole. Popisuje především použité technologie, knihovny, modely a jejich výběr. Následuje způsob implementace jednotlivých komponent. Dále je zde vysvětleno, jakým způsobem systém komunikuje s~externími službami a jak jsou zajištěny interakce mezi jednotlivými moduly systému a uživatelským rozhraním prostřednictvím API. Při zmínkách použitých technologií u~implementačních detailů jsou uvedeny citace k~dokumentacím, které byly při implementaci využity. Implementace je zveřejněna na portálu GitHub pod licencí MIT\footnote{\url{https://github.com/adamvalik/BP}}.
+
+\section{Použité technologie}
+Při implementaci systému byla využita existující řešení pro jednotlivé dílčí úkoly systému, které byly integrovány do funkčního celku Retrieval-Augmented Generation. 
+
+Systém je implementován v~jazyce Python. Vývoj a testování systému probíhalo lokálně pomocí technologie Docker Compose, která umožnila spouštění jednotlivých komponent (API server, databáze, frontend) v~konzistentním prostředí. Níže je uveden přehled hlavních knihoven a nástrojů, které byly v~rámci implementace použity:
+\begin{itemize}
+    \item \textbf{FastAPI} – webový framework k~propojení backendu a frontendu skrze API.
+    \item \textbf{Unstructured} – knihovna s rozhraním pro zpracování nestrukturovaných dat.
+    \item \textbf{NLTK} – knihovna pro zpracování přirozeného jazyka pro rozdělení textu na věty.
+    \item \textbf{Transformers} (HuggingFace) – knihovna pro práci s~předtrénovanými jazykovými modely, využita pro tokenizér. 
+    \item \textbf{Sentence Transformers} (HuggingFace) – knihovna s~embedding a reranker modely.
+    \item \textbf{Weaviate} – open-source vektorová databáze s~podporou hybridního vyhledávání.
+    \item \textbf{OpenAI API} – přístup ke generativním modelům GPT.
+    \item \textbf{Google Drive API} – rozhraní pro sledování změn a stahování dokumentů pro synchronizaci databáze se~složkou na Google Drive cloudovém úložišti.
+\end{itemize}
+
+Konkrétní použití těchto technologií je rozebráno v~následujících sekci.
+
+\section{Moduly systému}
+Systém byl navržen modulárně tak, aby jednotlivé zodpovědnosti byly rozděleny do tříd, které lze samostatně testovat nebo případně snadno měnit. Na obrázku \ref{fig:class} je uveden diagram tříd s~vyznačenými hlavními vztahy mezi jednotlivými moduly a jejich atributy a metodami.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{obrazky/RAG class diagram.pdf}
+    \caption{Diagram tříd. Kurzívou jsou označeny statické metody.}
+    \label{fig:class}
+\end{figure}
+
+\subsection{\texttt{DocumentProcessor}}
+Třída \texttt{DocumentProcessor} slouží ke zpracování dokumentů. Při inicializaci dostane cestu k~uloženému dokumentu nebo dokument v~paměti po bytech. Metoda \texttt{process()} pak vrací seznam vytvořených chunků k~uložení do databáze. Zpracování probíhá ve~třech krocích:
+\begin{enumerate}
+    \item \textbf{Extrakce textu} je realizována pomocí knihovny \texttt{Unstructured}~\cite{unstructured}. Ta poskytuje metody \texttt{partition()} pro různé typy souborů, které mají všechny výstupem seznam elementů reprezentujících logické celky dokumentu. Každý element obsahuje extrahovaný text, metadata a kategorii popisující účel v~dokumentu (např. záhlaví, narativní text, nadpis apod. – možné kategorie elementu se~odvíjí od typu dokumentu). \texttt{Unstructured} je high-level knihovna a pro zpracování různých typů souborů využívá externí nástroje, které je třeba mít nainstalované:
+    \begin{itemize}
+        \item pro \texttt{DOC} a \texttt{DOCX} je zapotřebí \texttt{libreoffice},
+        \item pro binární soubory jako \texttt{PDF}, \texttt{JPG}, \texttt{PNG} a \texttt{HEIC} slouží k~extrakci textu optické rozpoznávání znaků (OCR) za použití modulu \texttt{tesseract},
+        \item nástroj \texttt{poppler} je pak využíván k~renderování \texttt{PDF} dokumentů.
+    \end{itemize}
+    \item \textbf{Čištění textu} je mezikrokem zpracování a upravuje podobu textu pro lepší výsledky chunkování především odstraněním přebytečných mezer, emoji a odrážek v~seznamech. Konfigurovatelným krokem k~předpovídatelné struktuře datasetu je pak detekce nezaznamenaných nebo naopak odstranění přebytečných nadpisů, což vede k~lepšímu dělení textu. Tento krok tak lze manuálně přizpůsobit pro sady dokumentů se specifickým očekávaným formátem pro lepší zpracování.
+    \item \textbf{Chunkování} je implementováno podle principu popsaného v~kapitole~\ref{chunking}. 
+    
+    Text jednotlivých elementů je dělen na věty. Věty jsou detekovány pomocí funkce \texttt{nltk.tokenize.sent\_tokenize(text)}~\cite{nltk} a dále analyzovány na počet tokenů. O tokenizaci se~stará \texttt{AutoTokenizer}~\cite{tokenizerhuggingface}, jehož architektura je odvozena od použitého embedding modelu.
+    
+    Embedding model \texttt{all-mpnet-base-v2}, pro který jsou chunky připravovány, má limit 384 tokenů na vstupu a tomu je velikost chunku přizpůsobena, jelikož přesah limitu vstupu tento embedding model zahazuje. Menší chunky by naopak nemusely poskytnout dostatek kontextu.
+
+    Pro uzavření chunku a vytvoření nového slouží mimo limit taky detekce nadpisů. Ta využívá kategorii elementů \texttt{Title}.
+\end{enumerate}
+
+\subsection{\texttt{EmbeddingModel}}
+Pro výběr embedding modelu byla navržena abstraktní třída \texttt{BaseEmbeddingModel} definující rozhraní \texttt{embed()}. Ta slouží jako základ pro komponentu embedding modelu, která je zodpovědná za vektorizaci textových pasáží chunků pro uložení do vektorové databáze a také vektorizaci dotazu pro následné vyhledávání.
+
+Třída \texttt{HuggingFaceEmbeddingModel} využívá modely ze sady \texttt{sentence-transformers}. Pro systém byl využit model \texttt{all-mpnet-base-v2}, který generuje embeddingy o~dimenzi 768 a je navržen pro obecné použití. Z~dostupných modelů poskytuje nejlepší kvalitu, je však pomalejší oproti běžně používanému \texttt{all-MiniLM-L6-v2} (s~dimenzí 384)~\cite{sentence-tranformers}. Vyšší dimenzionalita umožňuje modelu zachytit jemnější významové detaily v~datech, což může vést k~lepší sémantické reprezentaci, ale většímu nároku na výkon a paměť.
+
+Třída \texttt{OpenAIEmbeddingModel} využívá rozhraní OpenAI API~\cite{openaiembed} k~získání embeddingů. Model \texttt{text-embedding-3-small} generuje embeddingy o~dimenzi 1536. Tento způsob byl zkoumán jako alternativní, nicméně tato služba je zpoplatněná a závislá na externím poskytovateli, kterému by bylo třeba při prvotním zpracování dokumentů zaslat všechna data, a tak bylo preferováno využití lokálního modelu z~knihovny \texttt{sentence-transformers} pro finální verzi systému pro snížení nákladů a zvýšení kontroly nad soukromím. 
+
+Výběr konkrétní implementace se~provádí tovární třídou \texttt{EmbeddingModelFactory}, která podle parametru \texttt{model\_type} vrací odpovídající instanci embedding modelu.
+
+\subsection{\texttt{VectorStore}}
+\label{vectorstore}
+Pro implementaci externího úložiště znalostí s~hybridním vyhledáváním byla využita open-source vektorová databáze Weaviate a její API~\cite{weaviate}, která poskytuje jednoduché řešení pro vývoj v~docker kontejneru podporující hybridní vyhledávání. Při každém přístupu do databáze je inicializován klient, který se k~ní připojí. 
+
+Pro účely ukládání chunků pak slouží jedna kolekce:
+\begin{verbatim}
+collection = client.collections.create(
+    name=collection_name,
+    vector_index_config=Configure.VectorIndex.hnsw(
+        distance_metric=VectorDistances.COSINE,
+    ),
+    properties=[
+        Property(name="chunk_id", data_type=DataType.TEXT),
+        Property(name="file_id", data_type=DataType.TEXT),
+        Property(name="text", data_type=DataType.TEXT),
+        Property(name="filename", data_type=DataType.TEXT),
+        Property(name="file_directory", data_type=DataType.TEXT),
+        Property(name="title", data_type=DataType.TEXT),
+        Property(name="page", data_type=DataType.TEXT),
+        Property(name="rights", data_type=DataType.TEXT)
+    ],
+)
+\end{verbatim}
+Konfigurace kolekce využívá algoritmus HNSW (viz kap.~\ref{grafove metody}) k~indexaci a kosinovu podobnost jako podobnostní funkci při vektorovém vyhledávání. Pro hybridní vyhledávání bylo využito rozhraní metody \texttt{collection.query.hybrid()}, které implementuje vektorová databáze Weaviate a kombinuje vektorové vyhledávání a BM25. Strategie volby parametrů byla zvolena na základě testování a evaluace systému (viz kap. \ref{evaluace}) následovně:
+\begin{verbatim}
+response = collection.query.hybrid(
+    query=query,
+    vector=embedding_model.embed(query)[0],
+    alpha=0.55,
+    fusion_type=HybridFusion.RELATIVE_SCORE,
+    return_metadata=MetadataQuery(score=True, explain_score=True),
+    auto_limit=3,
+    filters=Filter.by_property("rights").equal(rights)
+)
+\end{verbatim}
+\texttt{HybridFusion.RELATIVE\_SCORE} označuje algoritmus sloučení hybridního skóre, kde relativní skóre je vyjádřeno vzorcem zmíněným v~kapitole~\ref{hybrid}. Parametr \texttt{auto-limit} představuje tzv. \textit{autocut}, který nevrací pevný počet vyhledaných záznamů, ale daný počet prvních shluků záznamů dle jejich skóre, např. pro $\{0{,}97;\ 0{,}96;\ 0{,}955;\ 0{,}92;\ 0{,}91;\ 0{,}89\}$: 
+\begin{itemize}
+  \item \texttt{auto\_limit=1} $\rightarrow$ $\{0{,}97;\ 0{,}96;\ 0{,}955\}$
+  \item \texttt{auto\_limit=2} $\rightarrow$ $\{0{,}97;\ 0{,}96;\ 0{,}955;\ 0{,}92;\ 0{,}91\}$
+  \item \texttt{auto\_limit=3} $\rightarrow$ $\{0{,}97;\ 0{,}96;\ 0{,}955;\ 0{,}92;\ 0{,}91;\ 0{,}89\}$
+\end{itemize}
+
+\noindent Tento přístup tak dokáže navracet variabilní počet nejrelevantnějších chunků. Jelikož dotazy mohou být vágní a nemířit tak na konkrétní informace, je tento parametr nastaven volněji, aby byl vyhledán širší kontext relevantních chunků, který je zpracován rerankingem. Dále je aplikován filtr dle přístupových práv uživatele k~ilustraci filtrování metadaty.
+
+\subsection{\texttt{Rewriter}}
+\label{rewriter}
+Modul \texttt{Rewriter} zaobaluje oba jeho módy. Statická metoda \texttt{rewrite()} využívá OpenAI API~\cite{openaidocs} pro volání modelu \texttt{gpt-4o} k~přeformulování dotazu uživatele do podoby optimalizovanější pro vyhledávání. Použitý prompt vypadá následovně:
+\begin{verbatim}
+system:   You are a query rewriting assistant in a Retrieval-Augmented 
+Generation (RAG) system that uses both semantic and keyword-based search 
+(hybrid retrieval).
+
+Your task is to rewrite user queries to improve retrieval performance by:
+- Making the query **more specific, structured, and searchable**.
+- Emphasizing **important keywords or phrases** that are likely to appear 
+  in source documents.
+- Removing filler phrases like 'tell me about', 'please explain', 'can you
+  describe', etc.
+- Avoiding full-sentence questions unless absolutely necessary.
+- Keeping the rewritten query as **concise** as possible. 
+- Never adding assumptions or new topics not present in the original query.
+- If the query is nonsensical, return it unchanged.
+
+Examples:
+- Input: 'Tell me something about AI agents' → Output: 'AI agents overview'
+- Input: 'Can you explain vector databases in machine learning?' → Output: 
+  'vector databases in machine learning'
+- Input: 'aodwhuoaed' → Output: 'aodwhuoaed'
+
+user:   {query}
+\end{verbatim}
+
+Podporu chatové historie a navazujících dotazů řeší metoda \texttt{rewrite\_with\_history()}, lišící se promptem, který zahrnuje i~poslední tři páry dotaz–odpověď pro uvedení kontextu pro přeformulování dotazu, pakliže je neúplný:
+
+\begin{verbatim}
+system:   You are a query rewriting assistant in a Retrieval-Augmented 
+Generation (RAG) system that uses both semantic and keyword-based search
+(hybrid retrieval).
+
+Your task is to rewrite user queries to improve retrieval performance by:
+- Keep the rewritten query semantically equivalent to the original while 
+  keeping the keywords.
+- Do NOT add information or assumptions not present in the original query
+  or context.
+- If the query is nonsensical, too short, or unrewritable, just return it
+  unchanged.
+The user query may be a follow-up question. Use the recent chat history
+below **only to resolve ambiguous or incomplete queries**. 
+Recent Chat History:
+
+Q: {history_question}
+A: {history_answer}
+...
+
+user:   {query}
+\end{verbatim}
+
+\subsection{\texttt{Reranker}}
+\label{reranker}
+Modul \texttt{Reranker} mění pořadí a upřesňuje míru relevance chunků, které byly vyhledány. Využívá model \texttt{cross-encoder/ms-marco-MiniLM-L-6-v2}~\cite{crossencoder}. Pomocí metody \texttt{rank(query, candidates)} pak určuje skóre relevance, dle kterého jsou chunky nově řazeny pro formulaci kontextu. Skóre se~pohybuje přibližně v~intervalu $[-10, 10]$.
+
+Na seřazené chunky je aplikován filtr pomocí metody \texttt{filter\_by\_relative\_score()}. Ta nejprve posune všechna skóre rerankingu tak, aby byla všechna nezáporná. Následně vypočíte filtrační práh jako podíl z~maximálního skóre daný parametrem \texttt{cutoff}, jehož hodnota byla evaluací (kap.~\ref{cutoff}) stanovena na $0{,}5$. Tento výpočet bere v~úvahu dynamickou podobu rozsahu skóre rerankingu jednotlivých záznamů. Vyhledané záznamy se~skórem nižším než tento vypočtený práh jsou označeny za nerelevantní vyřazením z~kontextu.
+
+\subsection{\texttt{LLMWrapper}}
+\label{llmwrapper}
+Nadstavbu nad voláním jazykového modelu obstarává modul \texttt{LLMWrapper}. Vstupem je dotaz a chunky tvořící kontext k~zodpovězení dotazu. Prvním krokem je sestavení promptu, který definuje instrukce pro model a formát očekávané odpovědi:
+
+\begin{verbatim}
+system:   You are a factual answer generator in a Retrieval-Augmented 
+Generation (RAG) system.
+            
+You will receive a user query and a list of context chunks retrieved from 
+a document store. Each chunk contains text from a specific file, with 
+optional section titles or page numbers.
+
+Your job is to answer the user's question using **only** the provided 
+context. Cite the sources used in your answer using the format: 
+[File: filename, Section: title, Page: page]. If section or page is
+missing, omit them from the citation.
+
+**Rules:**
+- Do NOT use any knowledge outside the context.
+- Do NOT speculate or invent information.
+- If at least one chunk contains relevant information, answer using only 
+  that content.
+- Do NOT include a fallback message unless **none** of the chunks are even
+  partially relevant.
+- Do NOT try to give an exhaustive answer — partial answers are acceptable.
+- Do NOT explain what is missing.
+- Format your answer using **markdown**, be **short and factual**, and
+  avoid repetition.
+
+If there is truly no relevant information in any chunk, respond with:
+My knowledge base does not provide information for this query.
+
+Context:
+[File: {filename}, Section: {title}, Page: {page}]
+{text}
+...
+
+user:   {query}
+\end{verbatim}
+
+Druhým krokem je samotné volání jazykového modelu, které probíhá prostřednictvím rozhraní OpenAI API~\cite{openaidocs} za využití modelu \texttt{gpt-4o}, přičemž odpověď je generována po částech formou \textit{streamu}, čímž se~zlepšuje vnímání odezvy systému ze strany uživatele. Teplota modelu je nastavena na nízkou hodnotu $0{,}2$, což zajišťuje konzistentnější odpověď a nižší míru kreativity odpovědi vhodnou pro Q\&A.
+
+Kód pro generování odpovědi pak vypadá následovně:
+\begin{verbatim}
+stream = client.chat.completions.create(
+    model="gpt-4o",
+    messages=prompt,
+    temperature=0.2
+    stream=True
+)
+
+for response in stream:
+    yield response.choices[0].delta.content
+\end{verbatim}
+
+\subsection{\texttt{GoogleDriveDownloader}}
+
+Třída \texttt{GoogleDriveDownloader} zajišťuje integraci systému s~cloudovým úložištěm Google Drive. Jejím úkolem je stažení a synchronizace dokumentů tvořících znalostní bázi, a to jak v~rámci prvotního zpracování, tak průběžně pomocí sledování změn.
+
+Dokumenty jsou z~cloudu stahovány metodou \texttt{download\_file\_in\_memory()}, která vrací binární obsah dokumentu, který je předán ke zpracování a nahrán do databáze. Tento proces tak probíhá přímo v~paměti bez nutnosti uložení na disk. 
+
+Při připojení složky je provedeno prvotní nahrání všech dokumentů realizováno v~rámci metody \texttt{bulk\_ingest()}. Dokumenty složky jsou zpracovávány rekurzivně včetně vnořených podadresářů.
+
+Pro zajištění automatické synchronizace stavu dokumentů využívá třída API rozhraní \texttt{Google Drive Changes API}~\cite{googledriveapi}. Metodou \texttt{start\_changes\_watch()} je registrován tzv. \textit{webhook}, který upozorňuje systém na každou změnu. Tyto změny jsou zpracovány metodou \texttt{sync\_changes()}, která využívá \texttt{page\_token}, který identifikuje poslední stav změn. To umožňuje získat pouze změny od poslední synchronizace, které jsou obstarávány metodou \texttt{handle\_change()} pro učinění změn (nový dokument, aktualizace, smazání).
+
+\newpage
+
+\section{API}
+Serverová část systému komunikuje s~frontendem skrze API realizované webovým frameworkem FastAPI. 
+
+\subsection{API endpointy}
+\begin{itemize}
+    \item \texttt{GET /driveurl} – Ukládá URL sledované složky.
+    \item \texttt{POST /ingest\_folder} – Provádí prvotní nahrání dokumentů složky do vektorové databáze metodou \texttt{bulk\_ingest()} třídy \texttt{GoogleDriveDownloader}.
+    \item \texttt{POST /delete\_schema} – smaže celou databázi.
+    \item \texttt{POST /query} – provádí celý proces vyhledávání a vrací odpověď v~podobě \textit{streamu}.
+    \item \texttt{POST /webhook} – obstarává přicházející notifikace změn ve~sledované složce cloudového úložiště Google Drive.
+    \item \texttt{GET /sync} – manuálně spouští synchronizaci změn sledované složky.
+    \item \texttt{GET /filenames} – vypíše názvy dokumentů uložených v~databázi.
+\end{itemize}
+
+\subsection{Webhook}
+Koncový bod \texttt{POST /webhook} je pro \texttt{Google Drive Changes API} \cite{googledriveapi} zveřejněn pomocí nástroje \texttt{ngrok}~\cite{ngrok}. Tím je zajištěno, že při jakýchkoliv změnách provedených ve~sledované složce bude odeslána zpráva na tento koncový bod. Ten pak přijímá parametr \texttt{resource\_state}, který označuje stav příchozí zprávy. Při stavu \texttt{changes} je zapnuta synchronizační rutina.
+
+\subsection{StreamingResponse}
+Koncový bod API \texttt{POST /query} vrací \texttt{StreamingResponse}~\cite{fastapi} pro poskytnutí odpovědi po částech tak, jak je generována. Na frontend posílá tok zpráv ve~formátu JSON, přičemž první zpráva obsahuje serializované chunky, které byly použity pro tvorbu kontextu, a zbytek zpráv tvoří odpověď z~generátoru, který vrací \texttt{LLMWrapper}. Generátor, sloužící jako vstup pro \texttt{StreamingResponse}, pak vypadá následovně:
+\begin{verbatim}
+def stream():
+    serialized_chunks = [vars(chunk) for chunk in reranked_chunks]
+    yield json.dumps({
+        "text": None,
+        "metadata": {"chunks": serialized_chunks}
+    }) + "\n"
+    for llm_response in llm_wrapper.get_stream_response(
+        query, reranked_chunks
+    ):
+        response.append(llm_response)
+        yield json.dumps({
+            "text": llm_response,
+            "metadata": None
+        }) + "\n"
+\end{verbatim}
+
+\section{Uživatelské rozhraní}
+
+Uživatelské rozhraní slouží jako hlavní přístupový bod pro uživatele systému. Je navrženo jako webová aplikace s~cílem umožnit dotazování nad vlastní znalostní bází. 
+
+Webové rozhraní je vytvořeno a nastylováno pomocí frameworků Vue.js a Tailwind CSS. Komunikace s~backendem probíhá prostřednictvím REST API. Aplikace podporuje streamování odpovědi od jazykového modelu po jednotlivých blocích, což zlepšuje uživatelský dojem a snižuje vnímanou dobu odezvy. 
+
+Pro demonstraci funkcionality jsou k~dispozici dva pohledy. Uživatelský pohled zobrazuje zamýšlené rozhraní s~dotazy a odpověďmi, zatímco vývojářský pohled zobrazuje k~daným dotazům vyhledané chunky a jejich skóre, které tvořily kontext pro odpověď. Dále je možné vypnout nebo zapnout chatovou historii a přepínat role uživatele pro filtrování dle přístupových práv. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.97\linewidth]{obrazky/ui.png}
+    \caption{Webová aplikace: nahoře je pohled uživatele a dole pohled vývojáře}
+    \label{fig:gui}
+\end{figure}
+
+
+
+\chapter{Testování a evaluace}
+\label{evaluace}
+V kapitole~\ref{evaluaceteorie} byla diskutována teoretická východiska evaluace RAG systémů, která poukazují na komplexnost samotného hodnocení. Cílem této kapitoly je experimentálně ověřit výkonnost implementovaného systému na konkrétním datovém vzorku s~využitím zvolených evaluačních metod. Nejprve je popsán použitý dataset. Evaluace poté probíhá na třech úrovních: 
+\begin{enumerate}
+    \item Testování vyhledávacího modulu, kde je ověřena schopnost systému vyhledávat dokumenty, přesněji jejich relevantní části, na základě dotazu.
+    \item Komplexní evaluace celé RAG pipeline pomocí frameworku RAGAs.
+    \item Výkonnostní testování systému.
+\end{enumerate}
+
+Při tvorbě testovacích sad byl použit LLM, aby nedošlo k~ovlinění lidským faktorem. Tento přístup je časově efektivní a zároveň snižuje riziko neúmyslného zkreslení, které by mohlo vzniknout při ruční formulaci dotazů. 
+
+Výsledky přesto nelze považovat za absolutní, jelikož mimo kvalitu systému závisí výsledky na datech, na kterých je systém testován, a také na samotných dotazech. Jejich smyslem je tak poskytnout indikativní pohled na chování systému v~realistickém scénáři.
+
+\section{Dataset}
+\label{dataset}
+Pro účely testování a evaluace byl využit dataset \textit{Plain text Wikipedia (SimpleEnglish)}\footnote{\url{https://www.kaggle.com/datasets/ffatty/plain-text-wikipedia-simpleenglish}}. Jedná se~o~neanotovaný (nesupervidovaný) textový korpus obsahující všechny články ze Simple English Wikipedie, varianty Wikipedie psané ve~zjednodušené angličtině. Extrahované články jsou předzpracovány na čistý text zbavený formátování, odkazů, šablon a jiných prvků a tvoří tak předpovídatelný formát.
+
+Rozsah celého datasetu činí 249\,396 článků rozdělených do 171 souborů o~velikosti do 1MB. Tento dataset byl zvolen především díky obsahové rozmanitosti témat, jazykové jednoduchosti a také uniformní povaze dat usnadňující zpracování. To vytváří konzistentní datovou bázi pro testování a evaluaci.
+
+Pro testování a evaluaci byla použita podmnožina tohoto datasetu činící 30 dokumentů obsahujících celkem přes 17\,500 článků (po zpracování přes 29\,500 chunků).
+
+\section{Testování modulu vyhledávání}
+Cílem této části je otestovat účinnost vyhledávacího modulu systému na schopnosti vrátit chunk obsahující odpověď na daný dotaz.
+
+Pro každý testovací případ bylo zvoleno ID chunku ze zpracovaného datasetu a z~jeho textu byl odvozen dotaz. Tyto dotazy byly generovány pomocí chatbota ChatGPT, který využíval jazykový model GPT-4-turbo a byl instruován, aby vygeneroval dotaz, který směřuje k~nějaké informaci v~textu sémanticky nebo pomocí klíčových slov tak, aby se~odpověď na dotaz nacházela v~daném chunku. Testovací soubor formátu \textit{JSON Lines} tak obsahuje 100 párů \texttt{\{query, expected\_chunk\_id\}}.
+
+Testování probíhá formou vyhodnocení úspěšnosti vyhledávání při výskytu chunku na první pozici jako nejrelevantnější chunk (Recall@1) a výskytu ve~finálním kontextu (Recall@k). Obě tyto metriky jsou vyčísleny od 0 do 1, kde 1 představuje 100\% úspěšnost. Jelikož jsou dotazy mířeny na konkrétní záznamy, výchozí metoda tvoření kontextu je nastavena na parametr \texttt{auto\_limit=1} (viz~\ref{vectorstore}) bez rerankingu.
+
+\subsection{Parametr $\alpha$}
+Poměr mezi váhami vektorového a fulltextového vyhledávání v~hybridním přístupu řídí parametr $\alpha$. V grafu~\ref{fig:alpha-recall} jsou zobrazeny výsledky testu pro celý rozsah parametru k~vyhodnocení: $\alpha \in \langle 0, 1 \rangle$ po krocích $0{,}05$.
+
+Nejlepších hodnot metrik Recall@1 a Recall@k bylo dosaženo při $\alpha = 0{,}55$. To odpovídá vyváženému poměru mezi oběma typy vyhledávání mírně inklinujícímu k~vektorovému, které se~projevilo v~testování jako silnější. Výrazné omezení jednoho z~přístupů k~vyhledávání však vede ke zhoršení výkonu, což potvrzuje předpokládaný výsledek a smysl použití hybridního vyhledávání.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{obrazky/alpha_recall.pdf}
+    \caption{Porovnání Recall@1 a Recall@k pro různé hodnoty parametru $\alpha$ při hybridním vyhledávání bez rerankingu, kde kontext tvoří první shluk chunků }
+    \label{fig:alpha-recall}
+\end{figure}
+
+\subsection{Strategie vyhledávání a vliv rerankingu}
+Reranking má vliv nejen na pořadí chunků ve~výsledku, ale také na výslednou velikost kontextu, který je následně předáván jazykovému modelu. To ilustrují výsledky v~tabulce~\ref{tab:retrieval_metrics_full}. Test probíhal hybridním vyhledáváním ($\alpha=0{,}55$) se~zapnutým/vypnutým rerankingem pro hodnoty \texttt{auto\_limit} $\in \{1;\ 2;\ 3\}$ pro prozkoumání širšího kontextu a při rerankingu také pro hodnoty \texttt{cutoff} $\in \{0{,}3;\ 0{,}5;\ 0{,}7\}$ filtračního prahu (parametr filtrační funkce modulu \texttt{Reranker} – kap.~\ref{reranker}). 
+
+\begin{table}[H]
+    \centering
+    \label{tab:retrieval_metrics_full}
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|c|c|c|c|c|c|}
+        \hline
+        \textbf{auto\_limit} & \textbf{cutoff} & \textbf{Recall@1} & \textbf{Recall@k} & \textbf{Pořadí} & \textbf{Kontext} \\
+        \hline
+        \multirow{4}{*}{1} 
+        & off   & 0{,}83 & 0{,}96 & 1{,}18 & 2{,}57 \\
+        & 0{,}3   & 0{,}86 & 0{,}93 & 1{,}08 & 1{,}53 \\
+        & 0{,}5   & 0{,}86 & 0{,}93 & 1{,}08 & 1{,}38 \\
+        & 0{,}7   & 0{,}86 & 0{,}91 & 1{,}05 & 1{,}23 \\
+        \hline
+        \multirow{4}{*}{2} 
+        & off   & 0{,}83 & 0{,}97 & 1{,}21 & 8{,}80 \\
+        & 0{,}3   & 0{,}84 & 0{,}96 & 1{,}15 & 3{,}86 \\
+        & 0{,}5   & 0{,}84 & 0{,}96 & 1{,}15 & 2{,}45 \\
+        & 0{,}7   & 0{,}84 & 0{,}95 & 1{,}13 & 1{,}59 \\
+        \hline
+        \multirow{4}{*}{3} 
+        & off   & 0{,}83 & 0{,}98 & 1{,}27 & 17{,}58 \\
+        & 0{,}3   & 0{,}82 & 0{,}97 & 1{,}18 & 7{,}52 \\
+        & 0{,}5   & 0{,}82 & 0{,}97 & 1{,}18 & 3{,}67 \\
+        & 0{,}7   & 0{,}82 & 0{,}96 & 1{,}17 & 1{,}90 \\
+        \hline
+    \end{tabular}
+    \caption{Porovnání Recall@1 a Recall@k, průměrného pořadí referenčního chunku a průměrného počtu chunků v kontextu. Hodnota \texttt{off} sloupce \texttt{cutoff} značí vypnutý reranking.}
+\end{table}
+
+Výsledky ukazují, že samotné hybridní vyhledávání dosahuje dobrých výsledků, jelikož v~96\% případů byl chunk poskytující odpověď zahrnut v~kontextu. Při testování se~reranking neprojevil jako výrazné zlepšení výsledků. Z~hodnot průměrného pořadí referenčního chunku je však patrné, že reranking dokáže přesněji odhalit sémantické detaily a většinově to tak vedlo k~mírnému zlepšení Recall@1. Menší velikost kontextu pak má smysl za účelem redukce šumu, ale může také vést ke snížení nákladů na provozování systému. Vyšší míra filtrace však potenciálně vedla k~horším hodnotám Recall@k. Dochází tak ke kompromisu mezi velikostí a přesností kontextu.   
+
+\subsection{Vliv rewritingu}
+Rewriting potenciálně zlepšuje vyhledávání přeformulováním dotazu, v~tomto testu však při použití modulu \texttt{Rewriter} došlo ke snížení hodnot metriky Recall@1 z~$0{,}83$ na $0{,}79$ a metriky Recall@k z~$0{,}96$ na $0{,}94$ (při výchozí konfiguraci a parametru $\alpha=0{,}55$). Nepotvrdil se~tedy pozitivní vliv, avšak dotazy v~testovací sadě jsou již vhodně a napřímo formulované jazykovým modelem. 
+
+
+Proto byla celá testovací sada upravena s využitím ChatGPT přidáním výplňkových slov, překlepů a reformulací dotazů do hovorovější podoby. Například:
+
+\begin{itemize}
+    \item \textit{Why can eating raw food be risky?} $\rightarrow$ \textit{Eating food raw... risky why, tho?}
+    \item \textit{What is the wavelength range of red light?} $\rightarrow$ \textit{Whatz the wavlenght range of red ligth?}
+    \item \textit{What is colonization and how is it depicted in science fiction} $\rightarrow$ \textit{What is colonnization and how is it depiccted in scifi?}
+\end{itemize}
+
+\noindent Zde se výrazně potvrdil účinek přepisování dotazů pro potenciální kompenzování lidské chyby, což shrnují výsledky v~tab.~\ref{tab:rewriting_metrics_v2}.
+
+\begin{table}[H]
+    \centering
+    \label{tab:rewriting_metrics_v2}
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|c|c|c|c|}
+        \hline
+        \textbf{Testy} & \textbf{Rewriter} & \textbf{Recall@1} & \textbf{Recall@k} \\
+        \hline
+        \multirow{2}{*}{původní}
+        & vypnut & \textbf{0{,}83} & \textbf{0{,}96} \\
+        & zapnut  & 0{,}79 & 0{,}94 \\
+        \hline
+        \multirow{2}{*}{upravené}
+        & vypnut & 0{,}65 & 0{,}81 \\
+        & zapnut  & \textbf{0{,}82} & \textbf{0{,}92} \\
+        \hline
+    \end{tabular}
+    \caption{Porovnání Recall@1 a Recall@k pro původní a upravenou testovací sadu s~a bez použití přepisování dotazů}
+\end{table}
+
+\section{RAGAs evaluace}
+\label{ragas_eval}
+V této části je hodnocena výkonnost celého RAG jako end-to-end pipeline a jsou ověřeny některé strategie nastavení systému. Hodnocení bylo provedeno pomocí nástroje RAGAs~\cite{ragas}, který umožňuje automatizovanou evaluaci pomocí LLM bez nutnosti lidského hodnocení. Jako \textit{LLM-as-a-Judge} zde slouží model \texttt{gpt-4o-mini}. Pro rozšíření sledovaných metrik oproti kapitole~\ref{ragastheory}, kde je shrnut princip a výpočet základních metrik, bylo též využito referenčních odpovědí.
+
+\subsection{Hodnotící metriky}
+Níže je seznam sledovaných metrik a popis, co hodnotí:
+\begin{itemize}
+    \item \textbf{Context Precision} – zdali jsou vyhledané informace relevantní dotazu a v~kontextu se~nevyskytuje zbytečný šum.
+    \item \textbf{Context Recall} – jestli obsahují vyhledané záznamy informace k~poskytnutí správné odpovědi a fáze retrievalu funguje, jak má.
+    \item \textbf{Response Relevancy} – na kolik je vygenerovaná odpověď relevantní k~dotazu a měří tak její užitečnost.
+    \item \textbf{Faithfulness} – do jaké míry je odpověď podložena vyhledaným kontextem, což kontroluje, zdali nedochází k~halucinacím.
+    \item \textbf{Factual Correctness (F1 score)} – jak dobře je odpověď fakticky správná porovnáním s~referenční odpovědí.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{obrazky/ragas_eval.pdf}
+    \caption{Metriky hodnocení}
+    \label{fig:metrics}
+\end{figure}
+
+
+Hodnoty těchto metrik se~pohybují v~intervalu $\langle 0, 1 \rangle$, kde vyšší hodnota znamená lepší výsledek. K těmto metrikám pak byl přidán ukazatel průměrné velikosti vstupního dotazu jazykového modelu:
+\begin{itemize}
+    \item \textbf{Average input tokens} – průměrný počet tokenů v~promptu, čímž je sledována velikost poskytnutého kontextu.
+\end{itemize}
+
+\subsection{Příprava testovací sady}
+Modul \texttt{TestsetGenerator}, který je součástí frameworku RAGAs, využívá embedding model \texttt{all-mpnet-base-v2} a jazykový model \texttt{gpt-4o-mini} pro generování testovacích případů ve~formě dvojice: dotaz a tzv. \textit{golden answer} (referenční odpověd). Pro každý testovací případ byla poskytnuta část náhodně vybraného dokumentu z~datasetu. Získané testovací případy se~dělí na:
+\begin{itemize}
+    \item \textbf{single-hop} – dotaz je zodpověditelný na základě jediné věty nebo jednoho konkrétního úseku textu,
+    \item \textbf{multi-hop} – dotaz vyžaduje zkombinování více informací z~různých částí dokumentu.
+\end{itemize}
+Tímto způsobem bylo připraveno 50 single-hop testů a 30 multi-hop testů. Každý testovací případ byl nakonec obohacen o~vyhledaný kontext a vygenerovanou odpověď, které byly získány systémem s~testovanou strategií.
+
+\subsection{Strategie vyhledávání a vliv rerankingu}
+\label{cutoff}
+Cílem tohoto měření (na single-hop testovacích případech) je ověřit, do jaké míry může modul \texttt{Reranker} zvýšit výkon systému při end-to-end evaluaci. Výchozí konfigurace spoléhá na hybridní vyhledávání prvního shluku zaznámů (\texttt{auto\_limit=1}), použití rerankingu však umožňuje nejprve načíst širší množinu relevantních informací (\texttt{auto\_limit=3}) a následně ji upřesnit pomocí hodnocení relevance. Testovány byly opět tři hodnoty filtračního prahu $\{0{,}3,\ 0{,}5,\ 0{,}7\}$. V tabulce~\ref{tab:rerank} jsou naměřené hodnoty metrik pro jednotlivé prahy.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|l|c|c|c|c|}
+        \hline
+        \textbf{Metrika} & \textbf{off} & \textbf{0{,}3} & \textbf{0{,}5} & \textbf{0{,}7} \\
+        \hline
+        \textbf{Context Precision}         & 0{,}803 & 0{,}837 & \textbf{0{,}844} & 0{,}833 \\
+        \textbf{Context Recall}            & 0{,}798 & 0{,}882 & \textbf{0{,}885} & 0{,}824 \\
+        \textbf{Response Relevancy}        & 0{,}836 & \textbf{0{,}890} & 0{,}868 & 0{,}832 \\
+        \textbf{Faithfulness}              & 0{,}799 & \textbf{0{,}885} & 0{,}880 & 0{,}777 \\
+        \textbf{Factual Correctness (F1)}  & 0{,}518 & 0{,}570 & \textbf{0{,}587} & 0{,}519 \\
+        \textbf{Avg input tokens}          & 1063  & 2585  & 1637  & 973 \\
+        \hline
+    \end{tabular}
+    \caption{Porovnání výsledků při různých hodnotách filtračního prahu rerankingu ve~srovnání s vypnutým rerankingem}
+    \label{tab:rerank}
+\end{table}
+
+Měření ukazuje výrazný pozitivní vliv rerankingu ve~všech metrikách. Zatímco hodnota prahu $0{,}7$ se projevila jako příliš přísná, retrieval se~nejvíce zlepšil při \texttt{cutoff} $=0{,}5$, kde metrika Context Recall stoupla o~$0{,}087$. Hodnocení věrnosti a relevance odpovědi bylo nejvyšší při \texttt{cutoff} $=0{,}3$, avšak za cenu kontextu většího o~63\% než u hodnoty $=0{,}5$. 
+
+\subsection{Velikost chunku a volba embedding modelu}
+Cílem této evaluace (na single-hop testovacích případech) je zjistit optimální limit velikosti chunků a výběr embedding modelu. Jako možné scénaře byly testovány:
+\begin{enumerate}
+    \item model \texttt{all-mpnet-base-v2}, limit 384 tokenů (limit modelu)
+    \item model \texttt{all-mpnet-base-v2}, limit 200 tokenů
+    \item model \texttt{all-MiniLM-L6-v2}, limit 256 tokenů (limit modelu)
+\end{enumerate}
+Oba embedding modely jsou nejlépe hodnocené z~knihovny \texttt{sentence-transformers}, kde alterativní \texttt{all-MiniLM-L6-v2} vykazuje až 5krát nižší latenci. Výsledky měření jsou v~tabulce~\ref{tab:embedchunk}.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|l|c|c|c|}
+        \hline
+        \textbf{Metrika} & \textbf{1.} & \textbf{2.} & \textbf{3.} \\
+        \hline
+        \textbf{Context Precision}         & 0{,}803 & \textbf{0{,}827} & 0{,}785 \\
+        \textbf{Context Recall}            & \textbf{0{,}798} & 0{,}686 & 0{,}716 \\
+        \textbf{Response Relevancy}        & 0{,}836 & \textbf{0{,}849} & 0{,}777 \\
+        \textbf{Faithfulness}              & \textbf{0{,}799} & 0{,}781 & 0{,}742 \\
+        \textbf{Factual Correctness (F1)}  & 0{,}518 & \textbf{0{,}571} & 0{,}513 \\
+        \textbf{Avg input tokens}          & 1063 & 801 & 772 \\
+        \hline
+    \end{tabular}
+    \caption{Porovnání výsledků tří scénářů výběru embedding modelu a velikosti chunků (při výchozí strategii vyhledávání bez rerankingu)}
+    \label{tab:embedchunk}
+\end{table}
+Ačkoliv nabízí model \texttt{all-MiniLM-L6-v2} výrazně nižší latenci, výsledky evaluace poukazují na nižší kvalitu vyhledávání a výstupu při jeho použití. Rozdíl v~limitu velikosti chunku pak nevykazuje jednoznačné výsledky pro daný dataset a testovací sadu.
+
+\subsection{Evaluace systému}
+V tab.~\ref{tab:finaleval} je evaluací ověřena úspěšnost vyhledávání a generování odpovědi pro jednodušší (single-hop) i~komplexnější (multi-hop) dotazy. RAG systémy staví na vhodném nastavení parametrů a zvolení optimalizačních technik pro zlepšení výsledků, z~nichž klíčové byly ověřeny v~předešlém testování. Systém je nastaven tak, jak je popsáno v~kapitolách~\ref{navrh} a \ref{implementace}.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|l|c|c|}
+        \hline
+        \textbf{Metrika} & \textbf{single-hop} & \textbf{multi-hop} \\
+        \hline
+        \textbf{Context Precision}         & 0{,}882 & 0{,}678 \\
+        \textbf{Context Recall}            & 0{,}842 & 0{,}733 \\
+        \textbf{Response Relevancy}        & 0{,}886 & 0{,}778 \\
+        \textbf{Faithfulness}              & 0{,}843 & 0{,}848 \\
+        \textbf{Factual Correctness (F1)}  & 0{,}501 & 0{,}483 \\
+        \textbf{Avg input tokens}          & 1581 & 2156 \\
+        \hline
+    \end{tabular}
+    \caption{Výsledky evaluace systému na single-hop a multi-hop testovacích případech}
+    \label{tab:finaleval}
+\end{table}
+
+Z výsledků vyplývá, že vyhledávací modul dosahuje dobrých výsledků při vyhledávání relevantních informací k~přímému dotazu. Generátor pak poskytuje odpovědi relevantní dotazu a podložené informacemi z~kontextu, čímž je redukován vliv halucinací. Tyto metriky mají hodnoty v~rozmezí od $0{,}84$ do $0{,}89$.
+
+F1 skóre dosahuje hodnoty pouze kolem $0{,}5$, což může naznačovat nižší faktickou správnost generovaných odpovědí. Vzhledem k~tomu, že formát a rozsah odpovědi není jednoznačně definován, generátor může odpovědět správně jinou, ale stejně relevantní formulací. Tato metrika se tak u otevřených otázek projevuje jako mírně zavádějící u nektrých případů. Například:
+
+\begin{quote}
+\textbf{Dotaz:} \textit{What are the countries in Scandinavia that are not republics?} \\
+\textbf{Odpověď:} \textit{The countries in Scandinavia that are not republics are Denmark, Norway, and Sweden. These countries are monarchies. [File: wiki\_06.txt, Section: Scandinavia]} \\
+\textbf{Reference:} \textit{Countries in Scandinavia that are not republics include those with a king or other monarch and free elections, which are classified as constitutional monarchies.} 
+\end{quote}
+
+\noindent Z hlediska faktického obsahu jsou obě odpovědi správné, avšak se liší natolik, že metrika F1 jim přiřadí skóre $0$. V jiném případě byla hodnota $0{,}5$ dosaženého skóre, přestože odpověď obsahovala klíčovou informaci, pouze s jinou formulací:
+
+\begin{quote}
+\textbf{Dotaz:} \textit{What historical execution method was used in Scotland before the guillotine became prominent in France?} \\
+\textbf{Odpověď:} \textit{Before the guillotine became prominent in France, Scotland used a machine called the \uv{Scottish Maiden} for executions by decapitation. [File: wiki\_12.txt, Section: Guillotine]} \\
+\textbf{Reference:} \textit{In Scotland, a machine called the 'Scottish Maiden' was used for executions before the guillotine became prominent in France.} 
+\end{quote}
+
+% příklad: 
+% F1 = 0: 
+% query: What are the countries in Scandinavia that are not republics?
+% reference: Countries in Scandinavia that are not republics include those with a king or other monarch and free elections, which are classified as constitutional monarchies.
+% response: The countries in Scandinavia that are not republics are Denmark, Norway, and Sweden. These countries are monarchies. [File: wiki_06.txt, Section: Scandinavia]
+
+% F1 = 0.5: 
+% query: What historical execution method was used in Scotland before the guillotine became prominent in France?
+% reference: In Scotland, a machine called the 'Scottish Maiden' was used for executions before the guillotine became prominent in France.
+% response: Before the guillotine became prominent in France, Scotland used a machine called the "Scottish Maiden" for executions by decapitation. [File: wiki_12.txt, Section: Guillotine]
+
+\subsection{Škálovatelnost systému}
+Pro ověření škálovatelnosti systému byla provedena celková evaluace jako v předchozí podkapitole, avšak s kompletním datasetem. Ten po zpracování obsahuje téměř 270\,000 chunků, což je přibližně $9{,}3$krát více než v dosavadním testování.
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|l|c|c|}
+        \hline
+        \textbf{Metrika} & \textbf{single-hop} & \textbf{multi-hop} \\
+        \hline
+        \textbf{Context Precision}         & 0{,}875 & 0{,}752 \\
+        \textbf{Context Recall}            & 0{,}792 & 0{,}708 \\
+        \textbf{Response Relevancy}        & 0{,}888 & 0{,}718 \\
+        \textbf{Faithfulness}              & 0{,}856 & 0{,}810 \\
+        \textbf{Factual Correctness (F1)}  & 0{,}545 & 0{,}410 \\
+        \textbf{Avg input tokens}          & 1337 & 2447 \\
+        \hline
+    \end{tabular}
+    \caption{Výsledky evaluace systému na single-hop a multi-hop testovacích případech s kompletním datasetem}
+    \label{tab:finalbigeval}
+\end{table}
+
+Z tab.~\ref{tab:finalbigeval} je patrné, že je systém snadno škálovatelný, jelikož nedošlo k výrazným změnám jak v hodnotách metrik, tak ve velikosti kontextu v tokenech. Průměrná absolutní odchylka mezi naměřenými hodnotami metrik vychází na $0{,}023$ pro single-hop a $0{,}054$ pro multi-hop testovací případy, což není dostatečná změna na překonání různorodosti hodnocení LLM.
+
+\section{Výkonnostní testování systému}
+Pro určení rychlosti odezvy systému proběhlo měření latence jednotlivých procesů. Testování probíhalo lokálně na vývojovém zařízení Apple MacBook Air s čipem M1 (8jádrový CPU, architektura ARM64), operační pamětí 8\,GB a operačním systémem macOS 15.4.1. Docker daemon byl omezen na 4GB RAM a server, webová aplikace i vektorová databáze byly spuštěny virtuálně v jednotlivých docker kontejnerech a bez GPU akcelerace.
+
+\subsection{Nahrání datasetu}
+Zpracování celého datasetu z Simple English Wikipedie (z lokálního úložiště) na bez mála 270\,000 chunků, jejich vektorizace a uložení po dávkách do vektorové databáze trvalo systému celkem 2 hodiny a 42 minut. Jednotlivé fáze probíhaly v následujících časech:
+\begin{itemize}
+    \item zpracování dokumentů: 7 minut,
+    \item generování embeddingů: 2 hodiny a 28 minut,
+    \item zápis vektorů do databáze: 7 minut.
+\end{itemize}
+Embedding model tak představuje hlavní časové zatížení při fázi zpracování a nahrávání dokumentů do databáze.
+
+\newpage
+
+\subsection{Dotazování}
+Tab.~\ref{tab:latence} ukazuje průměrné hodnoty naměřené při dotazování systému prostřednictvím uživatelského rozhraní po deseti dotazech. Fáze odpověď udává dobu od poskytnutí dotazu až po počátek generování odpovědi, jelikož je pak zpráva generována postupně a tím je zajištěna interakce s uživatelem. Z měření lze pozorovat, že vyhledávání ve vektorové databázi mezi nižšími stovkami tisíc záznamů je velice rychlé, zatímco reranking způsobuje největší prodlevu. Pro zlepšení uživatelské zkušenosti by namísto čekání na generování odpovědi (průměrně $7{,}33$ s) mohla být přidána informace o aktuálním stavu vyhledávání.
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.2}
+    \begin{tabular}{|l|c|}
+        \hline
+        \textbf{Fáze} & \textbf{Odezva (s)} \\
+        \hline
+        \textbf{Rewriting}            & 1{,}25 \\
+        \textbf{Připojení k databázi}         & 2{,}85 \\
+        \textbf{Vyhledávání}        & 0{,}82 \\
+        \textbf{Reranking}              & 2{,}53 \\
+        \textbf{Odpověď}  & 7{,}33 \\
+        \hline
+    \end{tabular}
+    \caption{Průměrné trvání jednotlivých fází systému. Fáze \textit{odpověď} označuje dobu mezi posláním dotazu a počátkem generování odpovědi, kterou uživatel čeká.}
+    \label{tab:latence}
+\end{table}
+
+
+\chapter{Závěr}
+
+Tato bakalářská práce shrnuje princip vektorových databází a prezentuje návrh a implementaci systému pro zpracování a vyhledávání dokumentů pomocí architektury Retrieval-Augmented Generation s~využitím vektorové databáze a jazykových modelů. Systém umožňuje synchronizaci s~cloudovým úložištěm, zpracování dokumentů různých formátů na chunky a jejich uložení do vektorové databáze, která slouží jako báze znalostí. Následně lze skrze uživatelské rozhraní podávat dotazy v přirozeném jazyce, které jsou zpracovány a využity k získání relevantních pasáží dokumentů pomocí kombinace vektorového a fulltextového vyhledávání. Vyhledané informace prochází rerankingem a~slouží jako kontext pro odpověď. Ta je podložena zdroji a generována pro uživatele opět v přirozeném jazyce. Systém podporuje i~filtrování metadaty a chatovou historii pro navazující otázky. 
+
+Přínos práce spočívá v realizaci modulárního systému, který propojuje moderní technologie z oblasti zpracování přirozeného jazyka a práce s~nestrukturovanými daty do funkčního řešení, které lze využít pro vyhledávání ve~velkých datových kolekcích. Implementovaný systém byl navíc otestován na vyhledávání a následně podroben evaluaci. Výsledky byly využity k~ladění parametrů, ale také k~ověření celkové účinnosti navrženého řešení a škálovatelnosti systému.
+
+Pro účely této práce byl systém vyvinut a testován lokálně. Budoucí rozvoj tohoto projektu tak spočívá v~přípravě systému pro nasazení v~produkčních podmínkách pro jednotlivce nebo celé společnosti. Filtrování metadaty, např. na základě přístupových práv uživatelů, je v~systému již připraveno, avšak je třeba ho zavést pro konkrétní užití při přístupu více uživatelů k jedné databázi. Další možnosti rozvoje zahrnují rozšíření podpory pro zpracování více formátů dokumentů (např. PPTX, XLSX) a důkladnější práci s~PDF soubory, dále zpracování multimodálních dat nebo podporu vícejazyčnosti. 
+
+Tato práce byla prezentována dne 6. 5. 2025 na studentské konferenci Excel@FIT a získala ocenění za výjimečnou práci od firem Red Hat a Gen Digital. Plakát vytvořený pro tuto událost je součástí přílohy~\ref{excel}.
+
+%===============================================================================
+
+% Pro kompilaci po částech (viz projekt.tex) nutno odkomentovat
+%\end{document}

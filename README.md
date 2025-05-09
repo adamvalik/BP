@@ -12,6 +12,7 @@ This project uses Docker Compose, which is included with Docker Desktop (downloa
 .
 ├── doc
 │   ├── excel@fit - student conference
+│   ├── tex - thesis source code
 │   └── xvalik05_bp.pdf - bachelor thesis
 ├── rag
 │   ├── scripts
