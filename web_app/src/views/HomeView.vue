@@ -134,8 +134,8 @@
             @click="toggleChatHistory"
             class="w-28 rounded-xl text-sm text-center leading-tight transition-all duration-100"
             :class="{
-              'bg-gray-700 hover:bg-gray-600 text-teal-400': useHistory,
-              'bg-gray-800 hover:bg-gray-700 text-gray-400': !useHistory
+              'bg-gray-700 hover:bg-gray-600 text-teal-400 duration-100': useHistory,
+              'bg-gray-800 hover:bg-gray-700 text-gray-400 duration-100': !useHistory
             }"
           >
             <span class="block">Chat History</span>
@@ -167,10 +167,10 @@
       >
         <!-- close button -->
         <button
-          class="absolute top-2 right-2 text-white hover:text-gray-300"
+          class="absolute top-2 right-3 text-white hover:text-gray-300"
           @click="closeModal"
         >
-          X
+          x
         </button>
 
         <h2 class="text-xl font-bold mb-4 text-white">Google Drive Integration</h2>
@@ -185,7 +185,7 @@
           id="driveURL"
           placeholder="e.g. https://drive.google.com/drive/folders/..."
           class="w-full mb-4 p-2 rounded-md bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
-          :disabled="isIngesting"
+          :disabled="isInProcess"
         />
         <!-- show stored url -->
         <p v-if="storedDriveURL" class="text-sm text-gray-200 mb-4 text-opacity-50">
@@ -195,9 +195,9 @@
         <div class="flex justify-between items-center mt-4">
           <!-- delete db -->
           <button
-            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-500"
+            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-500 duration-100"
             @click="deleteSchema"
-            :disabled="isIngesting"
+            :disabled="isInProcess"
           >
             Delete DB
           </button>
@@ -205,38 +205,24 @@
           <div>
             <!-- ingest -->
             <button
-              class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-500"
+              class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-500 duration-100"
               @click="bulkIngest"
-              :disabled="isIngesting"
+              :disabled="isInProcess"
             >
-              Ingest
+              Upload Docs
             </button>
           </div>
         </div>
 
-        <!-- loading spinner and messages -->
-        <div v-if="isIngesting" class="mt-4 flex items-center">
-          <svg
-            class="animate-spin h-5 w-5 text-white mr-2"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              class="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              stroke-width="4"
-            ></circle>
-            <path
-              class="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v8H4z"
-            ></path>
+        <!-- loading spinner was taken from a library of UI components -->
+        <!-- source: https://flowbite.com/docs/components/spinner/ (licensed under MIT) -->
+        <div v-if="isInProcess" class="mt-4 flex items-center">
+          <span v-if="ingesting" class="text-gray-200 mr-2">Uploading...</span>
+          <span v-if="deleting" class="text-gray-200 mr-2">Deleting...</span>
+          <svg aria-hidden="true" class="w-6 h-6 text-gray-200 animate-spin dark:text-gray-600 fill-teal-500" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+              <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
           </svg>
-          <span class="text-gray-200">Ingesting, please wait...</span>
         </div>
 
         <div v-if="successMessage" class="mt-4 text-green-400">
@@ -269,18 +255,27 @@ export default {
       showModal: false,
       driveURL: "",
       storedDriveURL: "",
-      isIngesting: false,
+      ingesting: false,
+      deleting: false,
       successMessage: "",
       errorMessage: "",
     };
   },
+
   async mounted() {
     await this.fetchDriveURL();
+  },
+
+  computed: {
+    isInProcess() {
+      return this.ingesting || this.deleting;
+    },
   },
 
   methods: {
 
     renderMarkdown(text) {
+      // format citations and render the response in markdown
       if (!text) return "";
       
       const citationRegex = /\[(.*?)\]/g;
@@ -297,6 +292,7 @@ export default {
       this.devMode = !this.devMode;
       this.scrollDown();
     },
+
     async openModal() {
       await this.fetchDriveURL();
       this.showModal = true;
@@ -304,11 +300,12 @@ export default {
       this.errorMessage = "";
     },
     closeModal() {
-      if (this.isIngesting) return;
+      if (this.isInProcess) return;
       this.showModal = false;
     },
 
     async fetchDriveURL() {
+      // get the stored url from the backend
       try {
         const response = await fetch("http://localhost:8000/driveurl", {
           method: "GET",
@@ -329,6 +326,7 @@ export default {
     },
 
     async bulkIngest() {
+      // begin to ingest the whole folder
       const url = this.driveURL.trim() || this.storedDriveURL;
       if (!url) {
         this.errorMessage = "Please provide a valid Google Drive URL.";
@@ -336,7 +334,7 @@ export default {
       }
 
       try {
-        this.isIngesting = true;
+        this.ingesting = true;
         this.successMessage = "";
         this.errorMessage = "";
 
@@ -359,14 +357,15 @@ export default {
         console.error("Error ingesting folder:", error);
         this.errorMessage = "Error occurred during ingestion.";
       } finally {
-        this.isIngesting = false;
+        this.ingesting = false;
       }
     },
 
     async deleteSchema() {
+      // delete the database
       alert("Are you sure you want to delete the database?");
       try {
-        this.isIngesting = true;
+        this.deleting = true;
         this.successMessage = "";
         this.errorMessage = "";
         const response = await fetch("http://localhost:8000/delete_schema", {
@@ -380,15 +379,17 @@ export default {
           return;
         }
 
+        this.successMessage = "Database deleted successfully!";
       } catch (error) {
         console.error("Error deleting schema:", error);
         this.errorMessage = "Error deleting database.";
       } finally {
-        this.isIngesting = false;
+        this.deleting = false;
       }
     },
 
     async messageStreaming() {
+      // send the user query to the backend and stream the response
       if (this.newMessage.trim() === "") return;
       this.isStreaming = true;
 
@@ -456,7 +457,9 @@ export default {
       }
       this.isStreaming = false;
     },
+
     scrollDown() {
+      // scroll to the bottom of the chat area
       this.$nextTick(() => {
         const chat = this.$el.querySelector("#chatArea");
         chat.scrollTop = chat.scrollHeight;
