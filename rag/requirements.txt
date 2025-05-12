@@ -1,3 +1,4 @@
+# requirements for the RAG with txt documents
 fastapi
 uvicorn
 pydantic

@@ -69,7 +69,7 @@ This project integrates several modern tools to build a RAG system. The implemen
 - [Ngrok](https://ngrok.com/docs) - for exposing the FastAPI server to the internet
   
 ## Build
-Setup the environment variables in `.env` file. Use `.env.example` as a template. Update the `rag/Dockerfile` if you want to support documents in various formats (needs additional tools and libraries).
+Setup the environment variables in `.env` file (provide OpenAI API key). Use `.env.example` as a template. You can also update the `rag/Dockerfile` if you want to support only `.txt` format (no need to install additional tools and libraries).
 
 ```bash
 docker compose up --build

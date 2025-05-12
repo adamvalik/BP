@@ -1,3 +1,4 @@
+# requirements for the RAG with multi-format documents
 fastapi
 uvicorn
 pydantic

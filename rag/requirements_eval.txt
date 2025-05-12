@@ -1,3 +1,4 @@
+# requirements for the RAG evaluation and testing
 fastapi
 uvicorn
 pydantic

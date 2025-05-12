@@ -2,7 +2,7 @@ FROM python:3.11
 
 ENV PYTHONUNBUFFERED=1
 
-# uncomment to support multi-format
+# tools for multi-format support
 RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \
@@ -12,10 +12,6 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# COPY requirements.txt .
-# RUN pip install --no-cache-dir -r requirements.txt
-
-# uncomment to support multi-format
 COPY requirements_multiformat.txt .
 RUN pip install --no-cache-dir -r requirements_multiformat.txt
 
