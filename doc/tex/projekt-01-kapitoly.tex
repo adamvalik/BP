@@ -490,7 +490,6 @@ Tímto způsobem je zajištěno, že znalostní báze systému vždy reflektuje 
 
 Na obrázku~\ref{fig:flow} je znázorněna celková architektura systému, vzájemné propojení všech komponent a tok dat mezi nimi. Červené šipky označují tok dat ve~spojení synchronizace cloudového úložiště, které nahraje dokumenty, které podléhají procesu zpracování popsaného v~kap.~\ref{zpracovani}. Modré šipky značí proces vyhledávání dokumentů a poskytnutí odpovědi na dotaz z~kap.~\ref{vyhledavani}.
 
-%% todo fulltext
 \begin{figure}[H]
     \centering
     \includegraphics[width=1\linewidth]{obrazky/system.pdf}
@@ -1022,16 +1021,6 @@ F1 skóre dosahuje hodnoty pouze kolem $0{,}5$, což může naznačovat nižší
 \textbf{Reference:} \textit{In Scotland, a machine called the 'Scottish Maiden' was used for executions before the guillotine became prominent in France.} 
 \end{quote}
 
-% příklad: 
-% F1 = 0: 
-% query: What are the countries in Scandinavia that are not republics?
-% reference: Countries in Scandinavia that are not republics include those with a king or other monarch and free elections, which are classified as constitutional monarchies.
-% response: The countries in Scandinavia that are not republics are Denmark, Norway, and Sweden. These countries are monarchies. [File: wiki_06.txt, Section: Scandinavia]
-
-% F1 = 0.5: 
-% query: What historical execution method was used in Scotland before the guillotine became prominent in France?
-% reference: In Scotland, a machine called the 'Scottish Maiden' was used for executions before the guillotine became prominent in France.
-% response: Before the guillotine became prominent in France, Scotland used a machine called the "Scottish Maiden" for executions by decapitation. [File: wiki_12.txt, Section: Guillotine]
 
 \subsection{Škálovatelnost systému}
 Pro ověření škálovatelnosti systému byla provedena celková evaluace jako v předchozí podkapitole, avšak s kompletním datasetem. Ten po zpracování obsahuje téměř 270\,000 chunků, což je přibližně $9{,}3$krát více než v dosavadním testování.
