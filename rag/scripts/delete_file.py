@@ -1,12 +1,13 @@
 from vector_store import VectorStore
-import os
+from weaviate.classes.query import Filter
 
 v = VectorStore()
 
-FOLDER = "/Users/adamvalik/Downloads/test-wiki-2nd"
+files = ["space_35.txt","sport_99.txt","space_1.txt","sample_company.pdf","space_47.txt","sport_98.txt","intern_info.pdf"]
 
-for file in os.listdir(FOLDER):
-    file_path = os.path.join("/Users/adamvalik/Downloads/test-wiki", file)
-    v.delete_document(file_path)
+for file in files:
+    v.collection.data.delete_many(
+        where=Filter.by_property("filename").equal(file)
+    )
 
 v.close()

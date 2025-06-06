@@ -14,10 +14,10 @@ from unstructured.partition.text import partition_text
 
 from utils import color_print
 
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
+# try:
+#     nltk.data.find('tokenizers/punkt')
+# except LookupError:
+#     nltk.download('punkt')
 
 class DocumentProcessor():
     # chunking based on titles and number of tokens, respecting the token limit of the embedding model
@@ -112,7 +112,7 @@ class DocumentProcessor():
                 if el.category == "Title" and i + 1 < len(self.elements) and self.elements[i + 1].category == "Title":
                     el.category = "NarrativeText"
                     j = i + 1
-                    while i < len(self.elements) and self.elements[j].category == "Title":
+                    while j < len(self.elements) and self.elements[j].category == "Title":
                         self.elements[j].category = "NarrativeText"
                         j += 1
             if remove_formulas:

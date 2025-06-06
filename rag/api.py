@@ -91,12 +91,8 @@ def query_endpoint(request: QueryRequest):
     timings = {}
     start = time.perf_counter()
     overall_start = start
-    
-    vector_store = connect_to_vector_store()
-    timings["connect_vector_store"] = time.perf_counter() - start
 
     # rewriting
-    start = time.perf_counter()
     if request.use_history:
         rewritten_query = Rewriter.rewrite_with_history(request.query, request.history)
     else:
@@ -105,7 +101,11 @@ def query_endpoint(request: QueryRequest):
 
     color_print(f"Rewritten query: {rewritten_query}", color="yellow")
     
-    # hybrid search
+    start = time.perf_counter()
+    vector_store = connect_to_vector_store()
+    timings["connect_vector_store"] = time.perf_counter() - start
+    
+    # hybrid search 
     start = time.perf_counter()
     if request.rights == "user":
         chunks = vector_store.hybrid_search(rewritten_query, autocut=True, k=3, rights="user")
